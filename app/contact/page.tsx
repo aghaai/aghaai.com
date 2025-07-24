@@ -131,7 +131,7 @@ const ContactPage = () => {
           <div className="mt-2">
             <div className="flex items-center mb-4">
               <Mail className="w-5 h-5 lg:w-6 lg:h-6 text-white mr-3" />
-              <span className="text-white text-sm lg:text-base font-medium">support@cssedge.pk</span>
+              <span className="text-white text-sm lg:text-base font-medium">support@aghaai.com</span>
             </div>
             <div className="flex items-center">
               <Phone className="w-5 h-5 lg:w-6 lg:h-6 text-white mr-3" />
