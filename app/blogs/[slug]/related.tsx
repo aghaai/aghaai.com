@@ -23,8 +23,6 @@ export default async function Related({
     tags
   );
 
-  console.log(relatedBlogs);
-
   if (!relatedBlogs.length) {
     return (
       <div className="mt-12 text-center text-sm text-gray-500">
@@ -36,11 +34,11 @@ export default async function Related({
   return (
     <aside
       aria-label="Related articles"
-      className="py-8 lg:py-10 lg:mt-10 bg-muted"
+      className="py-10 lg:py-14 border-t border-gray-100"
     >
       <LayoutWrapper>
-        <h2 className="mb-8 text-2xl font-semibold ">Related Articles</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <h2 className="mb-8 text-2xl xl:text-4xl font-semibold text-gray-900 text-center">Related Articles</h2>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {relatedBlogs.map((post) => (
             <SingleBlog
               key={post._id}
@@ -53,7 +51,7 @@ export default async function Related({
               estimatedReadingTime={post.estimatedReadingTime}
               isFeatured={post.featured}
               publishedAt={post.publishedAt}
-              titleClassName="text-xl font-semibold"
+              titleClassName="text-lg font-semibold"
             />
           ))}
         </div>

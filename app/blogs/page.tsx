@@ -1,21 +1,26 @@
 "use client";
 
+import React, { useState } from "react";
 import useSWRInfinite from "swr/infinite";
 import { useInView } from "react-intersection-observer";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, User, ArrowRight } from "lucide-react";
 import SkeletonSingleBlog from "./SkeletonSingleBlog";
 import LayoutWrapper from "@/components/Wrapper/LayoutWrapper";
 import { formatPublishedDate, urlFor } from "@/lib/utils";
 import Image from "next/image";
-import { BlogPost } from "@/types/blog";
+import type { BlogPost } from "@/types/blog";
+import { motion } from "framer-motion";
 
 const PAGE_SIZE = 6;
 
-const getKey = (pageIndex: number, previousPageData: BlogPost[] | null) => {
+const getKey = (
+  pageIndex: number,
+  previousPageData: BlogPost[] | null
+): string | null => {
   if (previousPageData && !previousPageData.length) return null;
   return `/api/?page=${pageIndex}`;
 };
@@ -24,6 +29,12 @@ const fetcher = async (url: string): Promise<BlogPost[]> => {
   if (!res.ok) throw new Error("Failed to fetch blogs");
   return res.json();
 };
+
+function displayReadTime(mins?: number): string {
+  if (!mins) return "";
+  if (mins === 1) return "1 min read";
+  return `${mins} min read`;
+}
 
 export default function Blogs() {
   const { data, setSize, isValidating } = useSWRInfinite<BlogPost[]>(
@@ -36,47 +47,64 @@ export default function Blogs() {
     isEmpty || (data && data[data.length - 1]?.length < PAGE_SIZE);
 
   const { ref, inView } = useInView();
-
   if (inView && !isReachingEnd && !isValidating) setSize((prev) => prev + 1);
 
+  // --- CATEGORY FILTER LOGIC ---
   const categories: string[] = [
     "All",
     ...Array.from(new Set(blogs.map((post) => post.category).filter(Boolean))),
   ];
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  const featuredPost = blogs.find((b) => b.featured) || blogs[0];
+  // Only show featured post if it's in the filtered results
+  const filteredBlogs = selectedCategory === "All"
+    ? blogs
+    : blogs.filter((b) => b.category === selectedCategory);
+
+  const featuredPost = filteredBlogs.find((b) => b.featured) || filteredBlogs[0];
 
   const heroSubtitle =
-    "Expert insights, preparation strategies, and success stories to guide your CSS journey.";
-
+    "Expert insights, strategies, and success stories to guide your journey.";
   const fallbackAuthor = "Admin";
 
-  function displayReadTime(mins?: number) {
-    if (!mins) return "";
-    if (mins === 1) return "1 min read";
-    return `${mins} min read`;
-  }
-
   return (
-    <LayoutWrapper className="bg-[#fafafa] flex flex-col items-center w-full font-poppins">
-      <div className="bg-[#fafafa] w-full max-w-[1440px]">
+    <LayoutWrapper className="flex flex-col items-center w-full font-sans">
+      <div className="relative z-10 w-full max-w-[1440px]">
         {/* Hero Section */}
         <section className="py-16 px-4 sm:px-8 md:px-16 lg:px-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl font-medium mb-6 text-[#111827]">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.h1
+              className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 tracking-tight"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7 }}
+            >
               CSS Preparation Blog
-            </h1>
-            <p className="text-xl font-normal text-[#6b7280]">
+            </motion.h1>
+            <motion.p
+              className="text-lg md:text-xl text-gray-600 font-normal"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.7 }}
+            >
               {heroSubtitle}
-            </p>
+            </motion.p>
           </div>
         </section>
 
         {/* Featured Post */}
         {featuredPost && (
-          <section className="px-4 sm:px-8 md:px-16 lg:px-20 mb-12">
-            <div className="max-w-6xl mx-auto">
-              <Card className="bg-white border border-[#e5e7eb] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.10)] rounded-xl overflow-hidden">
+          <section className="px-4 sm:px-8 md:px-16 lg:px-20 mb-16">
+            <div className="mx-auto">
+              <motion.div
+                className="bg-white border border-gray-100 shadow-lg rounded-2xl overflow-hidden transition-all"
+                whileHover={{
+                  scale: 1.01,
+                  boxShadow: "0px 8px 36px rgba(24, 42, 68, 0.11)",
+                  borderColor: "#e5e7eb",
+                }}
+                transition={{ type: "spring", stiffness: 140, damping: 16 }}
+              >
                 <div className="md:flex">
                   <div className="md:w-1/2">
                     <Link href={`/blogs/${typeof featuredPost.slug === "string" ? featuredPost.slug : featuredPost.slug.current}`}>
@@ -85,69 +113,91 @@ export default function Blogs() {
                         height={450}
                         src={urlFor(featuredPost.mainImage)?.width(800).height(450).url() || ""}
                         alt={featuredPost.title}
-                        className="w-full h-64 md:h-full object-cover cursor-pointer"
+                        className="w-full h-64 md:h-full object-cover cursor-pointer transition-transform duration-500 hover:scale-105"
                         priority
                       />
                     </Link>
                   </div>
-                  <div className="md:w-1/2 p-8">
-                    <Badge className="mb-4 bg-[#1c6758] text-white">Featured</Badge>
-                    <Badge variant="outline" className="mb-4 ml-2 border-[#e5e7eb] text-[#1c6758]">{featuredPost.category}</Badge>
-                    <Link href={`/blogs/${typeof featuredPost.slug === "string" ? featuredPost.slug : featuredPost.slug.current}`}>
-                      <h2 className="hover:underline text-[#111827] text-3xl mb-4 font-medium">
-                        {featuredPost.title}
-                      </h2>
-                    </Link>
-                    <p className="text-[#6b7280] mb-6">{featuredPost.excerpt}</p>
-                    <div className="flex items-center gap-4 text-sm text-[#6b7280] mb-6">
-                      <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
-                        <span>{featuredPost.author || fallbackAuthor}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatPublishedDate(featuredPost.publishedAt)}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{displayReadTime(featuredPost.estimatedReadingTime)}</span>
-                      </div>
+                  <div className="md:w-1/2 p-4 md:p-8 flex flex-col justify-between">
+                    <div>
+                      <Badge className="mb-3 bg-gray-900 text-white font-semibold">Featured</Badge>
+                      <Badge variant="outline" className="mb-3 ml-2 border-gray-200 text-gray-800">
+                        {featuredPost.category}
+                      </Badge>
+                      <Link href={`/blogs/${typeof featuredPost.slug === "string" ? featuredPost.slug : featuredPost.slug.current}`}>
+                        <h2 className="hover:underline text-gray-900 text-2xl md:text-3xl mb-3 font-bold">
+                          {featuredPost.title}
+                        </h2>
+                      </Link>
+                      <p className="text-gray-600 mb-8">{featuredPost.excerpt}</p>
                     </div>
-                    <Link href={`/blogs/${typeof featuredPost.slug === "string" ? featuredPost.slug : featuredPost.slug.current}`}>
-                      <Button className="bg-[#1c6758] text-white hover:bg-[#155642]">
-                        Read Full Article
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
+                    <div>
+                      <div className="flex items-center gap-5 text-sm text-gray-400 mb-6">
+                        <div className="flex items-center gap-1">
+                          <User className="w-4 h-4" />
+                          <span>{featuredPost.author || fallbackAuthor}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatPublishedDate(featuredPost.publishedAt)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{displayReadTime(featuredPost.estimatedReadingTime)}</span>
+                        </div>
+                      </div>
+                      <Link href={`/blogs/${typeof featuredPost.slug === "string" ? featuredPost.slug : featuredPost.slug.current}`}>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <Button className="bg-[#1C6758] text-white shadow-none px-6 py-2 rounded-full text-base font-medium">
+                            Read Full Article
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </motion.div>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </Card>
+              </motion.div>
             </div>
           </section>
         )}
 
         {/* Categories Filter */}
-        <section className="px-4 sm:px-8 md:px-16 lg:px-20 mb-8">
-          <div className="max-w-6xl mx-auto">
+        <section className="px-4 sm:px-8 md:px-16 lg:px-20 mb-10">
+          <div className=" mx-auto">
             <div className="flex flex-wrap gap-3 justify-center">
-              {categories.map((category, index) => (
-                <Button
+              {categories.map((category) => (
+                <motion.div
+                  whileHover={{ scale: 1.08 }}
                   key={category}
-                  variant={index === 0 ? "default" : "outline"}
-                  className={`px-6 py-2 rounded-full font-medium ${index === 0 ? "bg-[#1c6758] text-white" : "bg-white text-[#1c6758] border border-[#e5e7eb]"}`}
+                  className="inline-block"
                 >
-                  {category}
-                </Button>
+                  <Button
+                    type="button"
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    className={`relative px-6 py-2 rounded-full font-medium transition-all duration-300 group text-gray-900 shadow-none
+                      ${selectedCategory === category
+                        ? "bg-gray-900 text-white"
+                        : "bg-white text-gray-900 border border-gray-200"
+                      }`}
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    {category}
+                  </Button>
+                </motion.div>
               ))}
             </div>
           </div>
         </section>
 
         {/* Blog Posts Grid */}
-        <section className="px-4 sm:px-8 md:px-16 lg:px-20 pb-16">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {blogs.length === 0 && isValidating && (
+        <section className="px-4  pb-20">
+          <div className=" mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
+              {filteredBlogs.length === 0 && isValidating && (
                 <>
                   {Array(3)
                     .fill(0)
@@ -156,12 +206,20 @@ export default function Blogs() {
                     ))}
                 </>
               )}
-              {blogs
+              {filteredBlogs
                 .filter((post) => !featuredPost || post._id !== featuredPost._id)
-                .map((post) => (
-                  <Card
+                .map((post, idx) => (
+                  <motion.div
                     key={post._id}
-                    className="bg-white border border-[#e5e7eb] shadow-[0px_5px_10px_0px_rgba(0,0,0,0.10)] rounded-xl overflow-hidden hover:shadow-[0px_3px_10px_0px_rgba(28,103,88,0.5)] transition-shadow"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.06, duration: 0.5 }}
+                    whileHover={{
+                      scale: 1.03,
+                      boxShadow: "0px 8px 24px rgba(24, 42, 68, 0.08)",
+                      borderColor: "#e5e7eb"
+                    }}
+                    className="bg-white border border-gray-100 shadow rounded-2xl overflow-hidden transition-all"
                   >
                     <div className="aspect-video overflow-hidden">
                       <Link href={`/blogs/${typeof post.slug === "string" ? post.slug : post.slug.current}`}>
@@ -170,23 +228,23 @@ export default function Blogs() {
                           height={450}
                           src={urlFor(post.mainImage)?.width(800).height(450).url() || ""}
                           alt={post.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-400 cursor-pointer"
                         />
                       </Link>
                     </div>
-                    <CardContent className="p-6">
-                      <Badge variant="outline" className="mb-3 border-[#e5e7eb] text-[#1c6758]">
+                    <CardContent className="p-5">
+                      <Badge variant="outline" className="mb-2 border-gray-200 text-gray-800">
                         {post.category}
                       </Badge>
                       <Link href={`/blogs/${typeof post.slug === "string" ? post.slug : post.slug.current}`}>
-                        <h3 className="hover:underline text-lg mb-3 font-medium line-clamp-2 text-[#111827]">
+                        <h3 className="hover:underline text-base mb-2 font-bold line-clamp-2 text-gray-900">
                           {post.title}
                         </h3>
                       </Link>
-                      <p className="text-[#6b7280] text-sm mb-4 line-clamp-3">
+                      <p className="text-gray-500 text-sm mb-4 line-clamp-3">
                         {post.excerpt}
                       </p>
-                      <div className="flex items-center gap-3 text-xs text-[#6b7280] mb-4">
+                      <div className="flex items-center gap-3 text-xs text-gray-400 mb-4">
                         <div className="flex items-center gap-1">
                           <User className="w-3 h-3" />
                           <span>{post.author || fallbackAuthor}</span>
@@ -200,28 +258,32 @@ export default function Blogs() {
                           <span>{displayReadTime(post.estimatedReadingTime)}</span>
                         </div>
                       </div>
-                      <Link
-                        href={`/blogs/${typeof post.slug === "string" ? post.slug : post.slug.current}`}
-                        className="inline-flex items-center text-[#1c6758] hover:text-[#155642] font-medium text-sm"
+                      <motion.div
+                        whileHover={{ scale: 1.06 }}
+                        whileTap={{ scale: 0.96 }}
+                        className="inline-block"
                       >
-                        Read More
-                        <ArrowRight className="w-4 h-4 ml-1" />
-                      </Link>
+                        <Link
+                          href={`/blogs/${typeof post.slug === "string" ? post.slug : post.slug.current}`}
+                          className="inline-flex items-center text-gray-900 hover:text-gray-700 font-medium text-sm transition-all"
+                        >
+                          Read More
+                          <ArrowRight className="w-4 h-4 ml-1" />
+                        </Link>
+                      </motion.div>
                     </CardContent>
-                  </Card>
+                  </motion.div>
                 ))}
             </div>
             {!isReachingEnd && (
               <div ref={ref} className="h-10 mt-6 flex justify-center items-center">
                 {isValidating && (
-                  <span className="text-sm text-gray-500">Loading more blogs...</span>
+                  <span className="text-sm text-gray-400">Loading more blogs...</span>
                 )}
               </div>
             )}
           </div>
         </section>
-
-
       </div>
     </LayoutWrapper>
   );

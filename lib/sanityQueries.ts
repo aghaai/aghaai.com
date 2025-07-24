@@ -27,11 +27,11 @@ export const fetchBlogsByPage = async (start = 0, end = 6) => {
 };
 
 export const getBlogPostQuery = `
-  *[_type == "blogPost" && slug.current == $slug && publishedAt <= now()]| order(publishedAt desc)[0]{
+  *[_type == "blogPost" && slug.current == $slug && publishedAt <= now()] | order(publishedAt desc)[0]{
     title,
     slug,
     mainImage,
-      excerpt,
+    excerpt,
     category->{title,_id},
     tags,
     metaTitle,
@@ -39,8 +39,8 @@ export const getBlogPostQuery = `
     publishedAt,
     body,
     "estimatedReadingTime": select(
-    round(length(pt::text(body)) / 5 / 180) < 1 => 1,
-    round(length(pt::text(body)) / 5 / 180)
+      round(length(pt::text(body)) / 5 / 180) < 1 => 1,
+      round(length(pt::text(body)) / 5 / 180)
     ),
     featured
   }
@@ -49,7 +49,7 @@ export const getBlogPostQuery = `
 export const fetchRelatedBlogs = async (
   slug: string,
   categoryId: string,
-  tags: string[] = []
+  tags?: string[] // optional
 ) => {
   if (!slug || !categoryId) return [];
 
@@ -63,11 +63,11 @@ export const fetchRelatedBlogs = async (
       category->{title},
       publishedAt,
       "estimatedReadingTime": select(
-    round(length(pt::text(body)) / 5 / 180) < 1 => 1,
-    round(length(pt::text(body)) / 5 / 180)
-    ),
-    featured
-      }`;
+        round(length(pt::text(body)) / 5 / 180) < 1 => 1,
+        round(length(pt::text(body)) / 5 / 180)
+      ),
+      featured
+    }`;
 
   const categoryResults = await client.fetch(categoryQuery, {
     slug,
@@ -78,7 +78,10 @@ export const fetchRelatedBlogs = async (
     return categoryResults;
   }
 
-  if (tags.length === 0) {
+  // ✅ Safe fallback for null/undefined tags
+  const safeTags = Array.isArray(tags) ? tags : [];
+
+  if (safeTags.length === 0) {
     return [];
   }
 
@@ -90,14 +93,14 @@ export const fetchRelatedBlogs = async (
       mainImage,
       excerpt,
       category,
-     "estimatedReadingTime": select(
-    round(length(pt::text(body)) / 5 / 180) < 1 => 1,
-    round(length(pt::text(body)) / 5 / 180)
-    ),
-    featured
+      "estimatedReadingTime": select(
+        round(length(pt::text(body)) / 5 / 180) < 1 => 1,
+        round(length(pt::text(body)) / 5 / 180)
+      ),
+      featured
     }`;
 
-  const tagResults = await client.fetch(tagQuery, { slug, tags });
+  const tagResults = await client.fetch(tagQuery, { slug, tags: safeTags });
 
   return tagResults;
 };

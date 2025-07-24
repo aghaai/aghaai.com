@@ -34,7 +34,6 @@ export async function generateMetadata({
       title: post.metaTitle,
       description: post.metaDescription,
       type: "article",
-      // publishedTime: post.publishedAt,
       images: post.mainImage
         ? [urlFor(post.mainImage)?.width(1200).height(630).url() || ""]
         : [],
@@ -45,7 +44,7 @@ export async function generateMetadata({
 export default async function BlogPage({ params }: { params: Params }) {
   const postSlug = (await params).slug;
   const blog = await client.fetch(getBlogPostQuery, { slug: postSlug });
-  console.log("single blog", blog);
+
   if (!blog) return notFound();
 
   return (
@@ -53,56 +52,75 @@ export default async function BlogPage({ params }: { params: Params }) {
       <LayoutWrapper className="md:pt-6">
         <Link
           href="/blogs"
-          className="flex items-center gap-2 text-muted-foreground hover:text-primary mb-8 transition-colors"
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 text-sm mb-8 transition-colors"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={18} />
           <span>Back to all blogs</span>
         </Link>
       </LayoutWrapper>
-      <LayoutWrapper className="lg:max-w-xl xl:max-w-4xl">
-        <h1 className="text-4xl font-bold mb-6 text-center">{blog.title}</h1>
-        <div className="flex items-center justify-center gap-2 lg:gap-4">
-          <div className="flex items-center gap-6 text-muted-foreground mb-8">
-            <div className="flex items-center gap-2">
+
+      <LayoutWrapper className="w-full lg:max-w-2xl xl:max-w-4xl 2xl:max-w-5xl pb-12">
+        {/* Title */}
+        <h1 className="text-3xl md:text-4xl font-bold mb-5 text-center text-gray-900 leading-tight">{blog.title}</h1>
+
+        {/* Meta */}
+        <div className="flex items-center justify-center flex-wrap gap-5 text-sm text-gray-500 mb-6">
+          {blog.category?.title && (
+            <div className="flex items-center gap-1">
               <FileType2 size={16} />
               <span>{blog.category.title}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <CalendarIcon size={16} />
-              <span>{formatPublishedDate(blog.publishedAt)}</span>
-            </div>
-            <div className="flex items-center gap-2">
+          )}
+          <div className="flex items-center gap-1">
+            <CalendarIcon size={16} />
+            <span>{formatPublishedDate(blog.publishedAt)}</span>
+          </div>
+          {blog.estimatedReadingTime && (
+            <div className="flex items-center gap-1">
               <Clock size={16} />
               <span>{blog.estimatedReadingTime} min read</span>
             </div>
-          </div>
+          )}
         </div>
+
+        {/* Main Image */}
         {blog.mainImage && (
-          <Image
-            src={urlFor(blog.mainImage)?.width(800).height(450).url() || ""}
-            alt={blog.title}
-            width={800}
-            height={450}
-            className="rounded-lg my-6 object-contain"
-            priority
-          />
+          <div className="w-full rounded-xl overflow-hidden shadow-sm mb-8 flex items-center justify-center">
+            <Image
+              src={urlFor(blog.mainImage)?.width(800).height(450).url() || ""}
+              alt={blog.title}
+              width={800}
+              height={450}
+              className="rounded-xl object-cover max-h-80 w-full"
+              priority
+            />
+          </div>
         )}
 
-        <PortableTextRenderer value={blog.body} />
-        <div className="mt-8 pt-6 border-t">
-          <h3 className="text-lg font-semibold mb-3">Tags:</h3>
-          <div className="flex flex-wrap gap-2">
-            {blog.tags.map((tag: string, index: number) => (
-              <span
-                key={index}
-                className="px-3 py-1 bg-muted rounded-full text-sm"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+        {/* Body */}
+        <div className="prose prose-gray max-w-none mx-auto mb-10 prose-headings:font-semibold prose-h2:mt-8 prose-h2:mb-2 prose-p:leading-relaxed">
+          <PortableTextRenderer value={blog.body} />
         </div>
+
+        {/* Tags Section - only show if tags exist */}
+        {Array.isArray(blog.tags) && blog.tags.length > 0 && (
+          <div className="pt-6 mt-8 border-t border-gray-100">
+            <h3 className="text-base font-semibold mb-2 text-gray-900">Tags:</h3>
+            <div className="flex flex-wrap gap-2">
+              {blog.tags.map((tag: string, index: number) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </LayoutWrapper>
+
+      {/* Related Posts */}
       <Related
         slug={blog.slug.current}
         categoryId={blog.category?._id}

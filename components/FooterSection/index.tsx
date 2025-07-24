@@ -5,27 +5,28 @@ import React from "react";
 
 const FooterSection = () => {
   const navLinks = [
-    { title: "About Us", href: "#" },
-    { title: "Past Papers", href: "#" },
-    { title: "Blogs", href: "#" },
-    { title: "Terms & Conditions", href: "#" },
-    { title: "Privacy Policy", href: "#" },
+    { title: "Home", href: "/" },
+    { title: "About Us", href: "/about" },
+    { title: "Contact Us", href: "/contact" },
+    { title: "Blogs", href: "/blogs" },
+    { title: "Terms & Conditions", href: "/terms" },
+    { title: "Privacy Policy", href: "/privacy-policy" },
   ];
 
   const socialLinks = [
     {
       icon: <FacebookIcon className="w-6 h-6 md:w-8 md:h-8" />,
-      href: "#",
+      href: "https://www.facebook.com/profile.php?id=61576107164419",
       label: "Facebook",
     },
     {
       icon: <InstagramIcon className="w-6 h-6 md:w-8 md:h-8" />,
-      href: "#",
+      href: "https://www.instagram.com/aghaai.css/?hl=en",
       label: "Instagram",
     },
     {
       icon: <LinkedinIcon className="w-6 h-6 md:w-8 md:h-8" />,
-      href: "#",
+      href: "https://www.linkedin.com/company/106276931/admin/dashboard/",
       label: "LinkedIn",
     },
   ];

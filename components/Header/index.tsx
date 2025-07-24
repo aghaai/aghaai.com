@@ -9,10 +9,11 @@ const HeaderSection = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
+    { label: "Home", href: "/" },
     { label: "About Us", href: "/about" },
     { label: "Plans", href: "/plans" },
-    { label: "Past Papers", href: "/past-papers" },
-    { label: "Books", href: "/books" },
+    // { label: "Past Papers", href: "/past-papers" },
+    // { label: "Books", href: "/books" },
     { label: "Blogs", href: "/blogs" },
     { label: "Contact Us", href: "/contact" },
   ];

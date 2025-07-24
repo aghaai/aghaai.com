@@ -10,7 +10,7 @@ interface Props {
   filename?: string;
 }
 
-export default function CodeBlock({ code, language = "javascript" }: Props) {
+export default function CodeBlock({ code, language = "javascript", filename }: Props) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -24,10 +24,13 @@ export default function CodeBlock({ code, language = "javascript" }: Props) {
   };
 
   return (
-    <div className="relative my-6">
+    <div className="relative my-6 group">
+      {filename && (
+        <div className="absolute top-2 left-4 text-xs text-gray-400 font-mono">{filename}</div>
+      )}
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 bg-gray-700 text-white text-xs px-2 py-1 rounded hover:bg-gray-600 z-10"
+        className="absolute top-2 right-2 bg-gray-800 text-white text-xs px-3 py-1 rounded transition-all hover:bg-gray-700 z-10"
       >
         {copied ? "Copied!" : "Copy"}
       </button>
@@ -35,9 +38,9 @@ export default function CodeBlock({ code, language = "javascript" }: Props) {
         language={language}
         style={coldarkDark}
         customStyle={{
-          padding: "1rem",
-          borderRadius: "8px",
-          fontSize: "0.875rem",
+          padding: "1.1rem 1rem 1rem 1rem",
+          borderRadius: "0.7rem",
+          fontSize: "0.93rem",
           margin: 0,
         }}
       >
