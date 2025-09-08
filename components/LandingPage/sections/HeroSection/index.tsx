@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import heroSection from "@/public/Group 151.png";
+import heroSection from "@/public/hero-section-asian-girl.png";
 import { useEffect, useState } from "react";
 import LayoutWrapper from "@/components/Wrapper/LayoutWrapper";
 

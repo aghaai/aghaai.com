@@ -1,7 +1,7 @@
 // app/api/route.ts
 
 import { NextResponse } from "next/server";
-import { client } from "../sanity/client";
+import { client } from "../../sanity/client";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

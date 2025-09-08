@@ -1,6 +1,6 @@
 // lib/sanityQueries.ts
 
-import { client } from "@/app/sanity/client";
+import { client } from "@/sanity/client";
 
 const options = { next: { revalidate: 30 } };
 

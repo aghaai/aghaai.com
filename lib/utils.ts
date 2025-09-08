@@ -5,7 +5,7 @@ import { twMerge } from "tailwind-merge";
 import { SanityImageSource } from "@sanity/image-url/lib/types/types";
 import imageUrlBuilder from "@sanity/image-url";
 import { format, formatDistanceToNowStrict, differenceInDays } from "date-fns";
-import { client } from "@/app/sanity/client";
+import { client } from "@/sanity/client";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

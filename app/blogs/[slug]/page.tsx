@@ -8,7 +8,7 @@ import React from "react";
 import PortableTextRenderer from "./PortableTextRenderer";
 import { ArrowLeft, CalendarIcon, Clock, FileType2 } from "lucide-react";
 import Link from "next/link";
-import { client } from "@/app/sanity/client";
+import { client } from "@/sanity/client";
 import LayoutWrapper from "@/components/Wrapper/LayoutWrapper";
 
 const Related = dynamic(() => import("./related"));
