@@ -18,7 +18,7 @@ export default function HeroSection() {
   }, []);
 
   const fullText =
-    " Join thousands of CSS aspirants who are transforming their preparation with AI-powered learning tools, instant feedback, personalized study plans, and intelligent progress tracking — all designed to help you study smarter, not harder. Achieve your goals faster with a platform built exclusively for CSS success.";
+    " Join thousands of CSS aspirants, who are transforming their preparation with AI-powered learning tools, instant feedback, personalized study plans, and intelligent progress tracking — all designed to help you study smarter, not harder. Achieve your goals faster with a platform built exclusively for CSS success.";
   const shortText = fullText.slice(0, 145) + "...";
 
 
