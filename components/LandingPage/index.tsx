@@ -15,8 +15,8 @@ export const LandingPage = () => {
   return (
     <>
       <HeroSection />
+      <AboutSection />
       <div className="py-[5rem]">
-        <AboutSection />
         <CssExamSection />
         <KeyFeaturesSection />
         <ReportsSection />

@@ -6,8 +6,8 @@ export interface SlugType {
 export interface BlogPost {
   _id: string;
   title: string;
-  slug: SlugType | string; // usually SlugType
-  mainImage: object; // Use a stricter type if you want
+  slug: SlugType | string;
+  mainImage: object;
   excerpt: string;
   category: string;
   publishedAt: string;

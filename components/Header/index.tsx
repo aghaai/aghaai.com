@@ -32,12 +32,12 @@ const HeaderSection = () => {
       </Link>
 
       {/* Center: Navbar (desktop only) */}
-      <nav className="hidden lg:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 items-center gap-6 xl:gap-12 2xl:gap-20 px-6 py-3 border border-gray-200 rounded-full z-0">
+      <nav className="hidden lg:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 items-center gap-6 xl:gap-16 2xl:gap-20 px-6 py-3 border border-gray-200 rounded-full z-0">
         {navItems.map((item, index) => (
           <Link
             key={index}
             href={item.href}
-            className="text-sm xl:text-md text-gray-900 hover:text-[#1c6758] transition-colors whitespace-nowrap"
+            className="text-sm xl:text-md font-medium text-gray-900 hover:text-[#1c6758] transition-colors whitespace-nowrap"
           >
             {item.label}
           </Link>

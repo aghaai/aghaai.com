@@ -1,3 +1,5 @@
+// app/blogs/SingleBlog.tsx:
+
 import { Badge } from "@/components/ui/badge";
 import { formatPublishedDate, urlFor } from "@/lib/utils";
 import { CalendarIcon, Clock } from "lucide-react";
