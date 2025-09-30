@@ -1,94 +1,172 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Menu, X } from "lucide-react";
+import LayoutWrapper from "../Wrapper/LayoutWrapper";
+import {
+  LoginDialog,
+  SignUpDialog,
+  EmailVerificationDialog,
+  ForgotPasswordDialog,
+  CreatePasswordDialog,
+  PasswordSuccessDialog,
+  WelcomeDialog
+} from "@/components/dialogs";
 
 const HeaderSection = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  // Check if user is on dashboard
+  const isDashboard = pathname === '/dashboard';
+  
+  // Dialog state management
+  const [activeDialog, setActiveDialog] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  const [isPasswordResetFlow, setIsPasswordResetFlow] = useState(false);
 
-  const navItems = [
-    { label: "Home", href: "/" },
-    { label: "About Us", href: "/about" },
-    { label: "Plans", href: "/plans" },
-    // { label: "Past Papers", href: "/past-papers" },
-    // { label: "Books", href: "/books" },
-    { label: "Blogs", href: "/blogs" },
-    { label: "Contact Us", href: "/contact" },
-  ];
+  // Dialog handlers
+  const openLogin = () => setActiveDialog('login');
+  const openSignUp = () => setActiveDialog('signup');
+  const openEmailVerification = (email: string, isPasswordReset = false) => {
+    setUserEmail(email);
+    setIsPasswordResetFlow(isPasswordReset);
+    setActiveDialog('verification');
+  };
+  const openCreatePassword = () => setActiveDialog('createPassword');
+  const openPasswordSuccess = () => setActiveDialog('passwordSuccess');
+  const openWelcome = (name: string) => {
+    setUserName(name);
+    setActiveDialog('welcome');
+  };
+  const closeDialog = () => {
+    setActiveDialog(null);
+    setIsPasswordResetFlow(false);
+  };
 
-  return (
-    <header className="w-full h-[88px] flex items-center justify-between px-4 sm:px-6 md:px-10 lg:px-20 relative">
-      {/* Left: Logo */}
-      <Link href="/" className="w-[100px] sm:w-[130px] h-[60px] flex items-center">
-        <Image
-          width={130}
-          height={130}
-          alt="Logo"
-          src="/logo.png"
-          className="object-contain w-full h-auto"
-        />
-      </Link>
+  // Auth flow handlers
+  const handleSuccessfulSignUp = (email: string, name: string) => {
+    setUserEmail(email);
+    setUserName(name);
+    openEmailVerification(email, false); 
+  };
 
-      {/* Center: Navbar (desktop only) */}
-      <nav className="hidden lg:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 items-center gap-6 xl:gap-16 2xl:gap-20 px-6 py-3 border border-gray-200 rounded-full z-0">
-        {navItems.map((item, index) => (
-          <Link
-            key={index}
-            href={item.href}
-            className="text-sm xl:text-md font-medium text-gray-900 hover:text-[#1c6758] transition-colors whitespace-nowrap"
+  const handleSuccessfulVerification = () => {
+    if (isPasswordResetFlow) {
+      openCreatePassword();
+    } else {
+      openWelcome(userName);
+    }
+  };
+
+  const handleSuccessfulLogin = (name: string) => {
+    setUserName(name);
+    router.push('/dashboard');
+  };
+
+  const handleForgotPasswordEmailSent = (email: string) => {
+    openEmailVerification(email, true); 
+  };
+
+  const handlePasswordCreated = () => {
+    openPasswordSuccess();
+  };
+
+  const handlePasswordSuccessComplete = () => {
+    setActiveDialog('login'); 
+  };
+
+  // Landing Page Header JSX Component  
+  const LandingHeaderContent = () => (
+    <LayoutWrapper>
+      <header className="w-full h-[70px] sm:h-[80px] flex items-center justify-between px-4 sm:px-0">
+        {/* Left: Logo */}
+        <Link href="/" className="w-[80px] xs:w-[90px] sm:w-[110px] md:w-[130px] h-[50px] sm:h-[60px] flex items-center flex-shrink-0">
+          <Image
+            width={130}
+            height={130}
+            alt="Logo"
+            src="/logo.png"
+            className="object-contain w-full h-auto"
+          />
+        </Link>
+
+        {/* Right: Login and Join for Free buttons */}
+        <div className="flex items-center gap-2 xs:gap-3">
+          <Button 
+            onClick={openLogin}
+            className="px-2 xs:px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 bg-transparent border-2 border-[#1c6758] text-[#1c6758] hover:bg-[#f5f5f5] font-medium text-xs xs:text-sm md:text-base whitespace-nowrap"
           >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      {/* Right: Actions */}
-      <div className="flex items-center gap-3 z-10">
-        {/* Live Badge (hidden on very small screens) */}
-        <div className="hidden sm:flex items-center gap-2">
-          <div className="w-3 h-3 bg-[#1c6758] rounded-full" />
-          <span className="text-sm md:text-md text-gray-900 whitespace-nowrap">32 Live</span>
-        </div>
-
-        {/* Desktop Sign Up Button */}
-        <div className="hidden sm:block ml-2 sm:ml-5">
-          <Button className="px-4 sm:px-5 py-1 sm:py-2 border-2 border-[#1c6758] bg-[#fafafa] text-[#1c6758] hover:bg-[#f5f5f5] font-normal text-sm md:text-md">
-            Sign Up
+            Login
+          </Button>
+          <Button 
+            onClick={openSignUp}
+            className="px-2 xs:px-3 sm:px-4 md:px-6 py-1.5 sm:py-2 bg-[#1c6758] border-2 border-[#1c6758] text-white hover:bg-[#145549] font-medium text-xs xs:text-sm md:text-base whitespace-nowrap"
+          >
+            Join for Free
           </Button>
         </div>
+      </header>
+    </LayoutWrapper>
+  );
 
-        {/* Mobile Hamburger Menu */}
-        <button
-          className="lg:hidden focus:outline-none ml-2"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </div>
+  return (
+    <>
+      {/* Only render header for non-dashboard pages */}
+      {!isDashboard && <LandingHeaderContent />}
 
-      {/* Mobile Menu Dropdown */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed top-[75px] left-0  bg-white shadow-md px-6 py-4 flex flex-col gap-4 z-50 border-t border-gray-200 w-screen">
-          {navItems.map((item, index) => (
-            <Link
-              key={index}
-              href={item.href}
-              className="text-gray-900 text-base hover:text-[#1c6758] transition-colors py-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <div className="">
-            <Button className=" border-2 border-[#1c6758] bg-[#fafafa] text-[#1c6758] hover:bg-[#f5f5f5] font-normal">
-              Sign Up
-            </Button>
-          </div>
-        </div>
-      )}
-    </header>
+      {/* Dialog Components */}
+      <LoginDialog
+        open={activeDialog === 'login'}
+        onOpenChange={(open) => !open && closeDialog()}
+        onSwitchToSignUp={() => setActiveDialog('signup')}
+        onForgotPassword={() => setActiveDialog('forgot')}
+        onSuccessfulLogin={handleSuccessfulLogin}
+      />
+
+      <SignUpDialog
+        open={activeDialog === 'signup'}
+        onOpenChange={(open) => !open && closeDialog()}
+        onSwitchToLogin={() => setActiveDialog('login')}
+        onSuccessfulSignUp={handleSuccessfulSignUp}
+      />
+
+      <EmailVerificationDialog
+        open={activeDialog === 'verification'}
+        onOpenChange={(open) => !open && closeDialog()}
+        email={userEmail}
+        isPasswordReset={isPasswordResetFlow}
+        onSuccessfulVerification={handleSuccessfulVerification}
+      />
+
+      <ForgotPasswordDialog
+        open={activeDialog === 'forgot'}
+        onOpenChange={(open) => !open && closeDialog()}
+        onBackToLogin={() => setActiveDialog('login')}
+        onEmailSent={handleForgotPasswordEmailSent}
+      />
+
+      <CreatePasswordDialog
+        open={activeDialog === 'createPassword'}
+        onOpenChange={(open) => !open && closeDialog()}
+        onPasswordCreated={handlePasswordCreated}
+      />
+
+      <PasswordSuccessDialog
+        open={activeDialog === 'passwordSuccess'}
+        onOpenChange={(open) => !open && closeDialog()}
+        onContinue={handlePasswordSuccessComplete}
+      />
+
+      <WelcomeDialog
+        open={activeDialog === 'welcome'}
+        onOpenChange={(open) => !open && closeDialog()}
+        userName={userName}
+      />
+    </>
   );
 };
 

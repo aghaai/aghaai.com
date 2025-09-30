@@ -5,7 +5,7 @@ import LayoutWrapper from "@/components/Wrapper/LayoutWrapper";
 
 export const AboutSection = () => {
   return (
-    <LayoutWrapper className="relative w-full py-10 -mt-[15rem] sm:-mt-10 sm:py-14 md:py-16 flex justify-center">
+    <LayoutWrapper className="pb-[6rem] pt-[2rem]">
       <div className="container flex flex-col md:flex-row items-center gap-6 md:gap-8 xl:gap-12">
         <div className="w-full md:w-1/2 flex justify-center">
           <Image
@@ -13,7 +13,7 @@ export const AboutSection = () => {
             width={300}
             height={300}
             alt="About CSS Edge"
-            src="/Rectangle 137.png"
+            src="/about/about.png"
           />
         </div>
 
@@ -39,12 +39,12 @@ export const AboutSection = () => {
             width={300}
             height={300}
             alt="About CSS Edge"
-            src="/Rectangle 137.png"
+            src="/about/about.png"
           />
 
           <div className="mt-2 sm:mt-4">
             <Button className="w-[8rem] px-5 py-2 bg-[#1c6758] rounded-md hover:bg-[#145a47] transition  sm:w-[10rem] text-white focus:ring-2 focus:ring-[#1c6758] focus:ring-offset-2">
-              Contact Us
+              About Us
             </Button>
           </div>
         </div>

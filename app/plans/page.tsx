@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PricingPlansSection } from "@/components/LandingPage/sections/PricingPlansSection";
+// import { PricingPlansSection } from "@/components/LandingPage/sections/DashboardHero";
 import LayoutWrapper from "@/components/Wrapper/LayoutWrapper";
 
 const Plan = () => {
@@ -79,7 +79,7 @@ const Plan = () => {
 
   return (
     <LayoutWrapper className="mb-8 md:mb-20">
-      <PricingPlansSection />
+      {/* <PricingPlansSection /> */}
 
       <h2 className="text-center mb-8 md:mb-12 text-2xl md:text-4xl font-semibold mt-8 md:mt-20">
         Plans Comparison Table
