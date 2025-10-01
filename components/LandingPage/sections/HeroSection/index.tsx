@@ -56,10 +56,10 @@ export default function HeroSection() {
   const currentVariant = heroVariants[currentSlide];
 
   return (
-    <div className="bg-[#F7F7F7] h-[70vh] md:h-[90vh]">
+    <div className="bg-[#F7F7F7] h-[70vh] md:h-[80vh]">
       <section className="flex relative z-10 overflow-x-clip items-center px-3 xs:px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 xs:gap-6 sm:gap-8 md:gap-10 lg:gap-12 items-center py-6 xs:py-8 sm:py-12 md:py-16 lg:py-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 xs:gap-6 sm:gap-8 md:gap-10 lg:gap-12 items-center py-6 xs:py-8 sm:py-12 md:py-16 lg:py-5">
             {/* Text Content */}
             <motion.div
               initial={{ opacity: 0, x: -60 }}

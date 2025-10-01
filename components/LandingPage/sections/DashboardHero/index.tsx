@@ -1,10 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 const DashboardHero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const router = useRouter();
 
   // Content variants that will change over time
   const contentVariants = [
@@ -54,6 +56,11 @@ const DashboardHero = () => {
 
     return () => clearInterval(timer);
   }, [contentVariants.length]);
+
+  // Handle button click - navigate to essay evaluation
+  const handleButtonClick = () => {
+    router.push('/essay-evaluation');
+  };
 
   const currentContent = contentVariants[currentSlide];
   return (
@@ -114,6 +121,7 @@ const DashboardHero = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.4, ease: "easeInOut", delay: 0.2 }}
+                  onClick={handleButtonClick}
                   className="
                     mt-4 sm:mt-5 md:mt-6 inline-flex items-center justify-center
                     rounded-md px-3 sm:px-4 md:px-5 lg:px-6 
@@ -123,6 +131,7 @@ const DashboardHero = () => {
                     hover:brightness-95 active:brightness-90
                     transition-all duration-200
                     min-w-[120px] sm:min-w-[140px] md:min-w-[160px]
+                    cursor-pointer
                   "
                 >
                   {currentContent.buttonText}

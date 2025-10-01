@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, createContext, useContext } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import DashboardHeaderWithSidebar from "./DashboardHeaderWithSidebar";
+import ProtectedLink from "@/components/ui/protected-link";
 import {
   LayoutDashboard,
   Settings,
@@ -13,7 +15,6 @@ import {
   PanelRightClose,
   Hourglass,
 } from "lucide-react";
-import Link from "next/link";
 
 // Context for sidebar state
 interface SidebarContextType {
@@ -40,6 +41,7 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   const sidebarValue = {
     isCollapsed,
@@ -84,16 +86,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
 
             {/* Mobile Navigation */}
-            <nav className="flex-1 p-4">
+            <nav className="flex-1 p-4 overflow-y-auto">
               <ul className="space-y-2">
                 <li>
-                  <a
-                    href="#"
-                    className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                  <ProtectedLink
+                    href="/dashboard"
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      pathname === "/dashboard"
+                        ? "bg-[#1F6B63] text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
                   >
                     <LayoutDashboard className="w-5 h-5" />
                     <span className="font-medium">Home</span>
-                  </a>
+                  </ProtectedLink>
                 </li>
                 <li>
                   <a
@@ -105,27 +111,31 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </a>
                 </li>
               </ul>
+
+              {/* History Section - Moved up in mobile */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <a
+                  href="#"
+                  className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors mb-3"
+                >
+                  <History className="w-5 h-5 text-[#6B7280]" />
+                  <span className="font-medium text-[#6B7280]">History</span>
+                </a>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <Hourglass className="w-6 h-6 text-gray-600" />
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 text-center">
+                    You haven&apos;t submitted your essay yet
+                  </p>
+                </div>
+              </div>
             </nav>
 
-            {/* Mobile Bottom Section */}
+            {/* Mobile Bottom Section - Only Logout */}
             <div className="p-4 border-t border-gray-200">
-              <a
-                href="#"
-                className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <History className="w-5 h-5 text-[#6B7280]" />
-                <span className="font-medium text-[#6B7280]">History</span>
-              </a>
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-center mb-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                    <Hourglass className="w-6 h-6 text-gray-600" />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 text-center">
-                  You haven&apos;t submitted your essay yet
-                </p>
-              </div>
               <button className="flex items-center gap-3 px-3 py-2 text-red-600 rounded-lg hover:bg-red-50 transition-colors w-full">
                 <LogOut className="w-5 h-5" />
                 <span className="font-medium">Logout</span>
@@ -167,14 +177,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <nav className="flex-1 p-4">
             <ul className="space-y-2">
               <li>
-                <a
-                  href="#"
-                  className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors group"
+                <ProtectedLink
+                  href="/dashboard"
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${
+                    pathname === "/dashboard"
+                      ? "bg-[#1F6B63] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
                   title={isCollapsed ? "Home" : ""}
                 >
                   <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
                   {!isCollapsed && <span className="font-medium">Home</span>}
-                </a>
+                </ProtectedLink>
               </li>
               <li>
                 <a
@@ -220,14 +234,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
           {/* Bottom Section */}
           <div className="p-4">
-            <Link
+            <ProtectedLink
               href="/"
               className="flex items-center gap-3 px-3 py-2 text-red-600 rounded-lg hover:bg-red-50 transition-colors w-full justify-center lg:justify-start"
               title={isCollapsed ? "Logout" : ""}
             >
               <LogOut className="w-5 h-5 flex-shrink-0" />
               {!isCollapsed && <span className="font-medium">Logout</span>}
-            </Link>
+            </ProtectedLink>
           </div>
         </div>
 

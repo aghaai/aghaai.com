@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -13,14 +14,17 @@ interface WelcomeDialogProps {
 }
 
 export const WelcomeDialog = ({ open, onOpenChange, userName = "AI user" }: WelcomeDialogProps) => {
+  const router = useRouter();
+
   const handleExploreDashboard = () => {
     console.log("Exploring dashboard");
     onOpenChange(false);
   };
 
   const handleStartFirstEssay = () => {
-    console.log("Navigate to essay writing");
+    console.log("Navigate to essay evaluation");
     onOpenChange(false);
+    router.push('/essay-evaluation');
   };
 
   return (
