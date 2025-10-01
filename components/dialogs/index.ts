@@ -8,3 +8,5 @@ export { PasswordSuccessDialog } from './PasswordSuccessDialog';
 export { SubmitEssayDialog } from './SubmitEssayDialog';
 export { FinishDialog } from './FinishDialog';
 export { default as TestWarningDialog } from './TestWarningDialog';
+export { default as ErrorDialog } from './ErrorDialog';
+export { default as SuccessDialog } from './SuccessDialog';

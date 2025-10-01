@@ -73,7 +73,8 @@ const HeaderSection = () => {
   };
 
   const handleForgotPasswordEmailSent = (email: string) => {
-    openEmailVerification(email, true);
+    setUserEmail(email);
+    openCreatePassword();
   };
 
   const handlePasswordCreated = () => {
@@ -160,6 +161,7 @@ const HeaderSection = () => {
       <CreatePasswordDialog
         open={activeDialog === "createPassword"}
         onOpenChange={(open) => !open && closeDialog()}
+        email={userEmail}
         onPasswordCreated={handlePasswordCreated}
       />
 

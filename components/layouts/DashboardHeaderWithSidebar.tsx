@@ -1,11 +1,14 @@
 "use client";
 
 import React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Coins, Menu } from "lucide-react";
+import { Coins, Menu, LogOut } from "lucide-react";
 import { useSidebar } from "./DashboardLayout";
+import { useAppSelector, useAppDispatch } from "@/lib/redux/hooks";
+import { logout } from "@/lib/redux/slices/authSlice";
+import { authAPI } from "@/lib/api/auth";
 
 // Define page configurations for different dashboard pages
 const pageConfigs = {
@@ -42,8 +45,26 @@ const pageConfigs = {
 const DashboardHeaderWithSidebar = () => {
   const { setIsMobileOpen, isMobileOpen } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
   const [showDropdown, setShowDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear Redux state and localStorage
+      dispatch(logout());
+      localStorage.removeItem('_aT');
+      localStorage.removeItem('_rT');
+      localStorage.removeItem('user');
+      router.push('/');
+    }
+  };
 
   // Get current page config or default to dashboard
   const currentPage =
@@ -130,19 +151,56 @@ const DashboardHeaderWithSidebar = () => {
               />
             </button>
 
-            {/* Dropdown Menu - Only on mobile/tablet */}
+            {/* Dropdown Menu - Shows on all screens */}
             {showDropdown && (
-              <div className="lg:hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                {/* User Info Section */}
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-400 rounded-full overflow-hidden flex-shrink-0">
+                      <Image
+                        src="/assets/avatar.jpg"
+                        alt="User Avatar"
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {user?.name || "User"}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {user?.email || ""}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu Items */}
                 <div className="py-2">
+                  {/* Buy more tokens - Only on mobile/tablet */}
                   <button
                     onClick={() => {
                       setShowDropdown(false);
                       // Handle buy more action
                     }}
-                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    className="lg:hidden w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3"
                   >
                     <Coins className="w-4 h-4" />
-                    Buy more tokens
+                    <span>Buy more tokens</span>
+                  </button>
+
+                  {/* Logout Button */}
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      handleLogout();
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
                   </button>
                 </div>
               </div>

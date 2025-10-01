@@ -14,6 +14,7 @@ import {
   Check,
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const EssayEvaluationPage = () => {
   const router = useRouter();
@@ -29,9 +30,10 @@ const EssayEvaluationPage = () => {
   };
 
   return (
-    <DashboardLayout>
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto bg-white rounded-xl border border-gray-200 p-8 sm:p-12">
+    <ProtectedRoute>
+      <DashboardLayout>
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto bg-white rounded-xl border border-gray-200 p-8 sm:p-12">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
             <FileText className="w-8 h-8 text-[#817E7E] mx-auto mb-2" />
@@ -163,6 +165,7 @@ const EssayEvaluationPage = () => {
         </div>
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   );
 };
 

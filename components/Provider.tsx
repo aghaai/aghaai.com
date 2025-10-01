@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import HeaderSection from "./Header";
 import FooterSection from "./FooterSection";
 import { TestNavigationProvider } from "./contexts/TestNavigationContext";
+import { ReduxProvider } from "@/lib/redux/ReduxProvider";
 
 export default function Provider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,12 +17,14 @@ export default function Provider({ children }: { children: React.ReactNode }) {
     pathname === "/essay-upload";
 
   return (
-    <TestNavigationProvider>
-      <div className="flex flex-col min-h-screen">
-        <HeaderSection />
-        <main className="flex-grow">{children}</main>
-        {!isDashboardPage && <FooterSection />}
-      </div>
-    </TestNavigationProvider>
+    <ReduxProvider>
+      <TestNavigationProvider>
+        <div className="flex flex-col min-h-screen">
+          <HeaderSection />
+          <main className="flex-grow">{children}</main>
+          {!isDashboardPage && <FooterSection />}
+        </div>
+      </TestNavigationProvider>
+    </ReduxProvider>
   );
 }

@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, X } from "lucide-react";
+import { authAPI } from "@/lib/api/auth";
+import { ErrorDialog, SuccessDialog } from "./index";
 
 interface ForgotPasswordDialogProps {
   open: boolean;
@@ -16,27 +18,42 @@ interface ForgotPasswordDialogProps {
 export const ForgotPasswordDialog = ({ open, onOpenChange, onBackToLogin, onEmailSent }: ForgotPasswordDialogProps) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<{ show: boolean; message: string }>({ show: false, message: "" });
+  const [success, setSuccess] = useState<{ show: boolean; message: string }>({ show: false, message: "" });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError({ show: false, message: "" });
     
     try {
-      // Handle forgot password logic here
-      console.log("Send reset code to:", email);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Trigger OTP verification
-      onEmailSent?.(email);
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Password reset failed:", error);
+      // Call forgot password API
+      await authAPI.forgotPasswordRequest({ email });
+      
+      // Show success dialog
+      setSuccess({ 
+        show: true, 
+        message: `Password reset OTP has been sent to ${email}. Please check your inbox.` 
+      });
+    } catch (err) {
+      console.error("Password reset failed:", err);
+      const error = err as { response?: { data?: { message?: string } } };
+      const errorMessage = error?.response?.data?.message || "Failed to send reset code. Please try again.";
+      setError({ show: true, message: errorMessage });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleSuccessDialogClose = () => {
+    setSuccess({ show: false, message: "" });
+    // Close forgot password dialog and open create password dialog
+    onOpenChange(false);
+    onEmailSent?.(email);
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-full mx-auto">
         <button
@@ -93,5 +110,19 @@ export const ForgotPasswordDialog = ({ open, onOpenChange, onBackToLogin, onEmai
         </form>
       </DialogContent>
     </Dialog>
+
+    <ErrorDialog
+      isOpen={error.show}
+      onClose={() => setError({ show: false, message: "" })}
+      message={error.message}
+    />
+
+    <SuccessDialog
+      isOpen={success.show}
+      onClose={handleSuccessDialogClose}
+      title="OTP Sent Successfully!"
+      message={success.message}
+    />
+    </>
   );
 };

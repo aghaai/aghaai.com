@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, CheckCircle2, Clock, X, FileText } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTestNavigation } from "@/components/contexts/TestNavigationContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const EssayUploadPage = () => {
   const router = useRouter();
@@ -168,8 +169,9 @@ const EssayUploadPage = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-3 sm:space-y-4 pb-2">
+    <ProtectedRoute>
+      <DashboardLayout>
+        <div className="space-y-3 sm:space-y-4 pb-2">
         {/* Essay Topic Section */}
         <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
           <h3 className="text-xs sm:text-sm font-semibold text-gray-900 mb-1">
@@ -359,6 +361,7 @@ const EssayUploadPage = () => {
         </div>
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   );
 };
 

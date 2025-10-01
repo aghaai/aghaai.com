@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, PieChart, BookOpen } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsChart, Pie, Cell, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsChart, Pie, Cell } from "recharts";
 import DashboardHero from "@/components/LandingPage/sections/DashboardHero";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { WelcomeDialog } from "@/components/dialogs";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const DashboardPage = () => {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
@@ -56,8 +57,9 @@ const DashboardPage = () => {
   }, []);
   
   return (
-    <DashboardLayout>
-      <DashboardHero />
+    <ProtectedRoute>
+      <DashboardLayout>
+        <DashboardHero />
       
       {/* Toggle Switch */}
       <div className="mb-6 flex justify-end">
@@ -322,7 +324,8 @@ const DashboardPage = () => {
         onOpenChange={setShowWelcomeDialog}
         userName={userName}
       />
-    </DashboardLayout>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 };
 

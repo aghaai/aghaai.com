@@ -1,15 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { FileText, Play, Clock } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { topicsAPI, type Topic } from "@/lib/api/topics";
 
 const EssayTestPage = () => {
   const router = useRouter();
-  const [selectedTopic, setSelectedTopic] = useState<number | null>(null);
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(3 * 60 * 60); // 3 hours in seconds
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [isLoadingTopics, setIsLoadingTopics] = useState<boolean>(false);
+  const [topicsError, setTopicsError] = useState<string | null>(null);
 
   // Timer countdown effect
   useEffect(() => {
@@ -31,28 +36,38 @@ const EssayTestPage = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const topics = [
-    {
-      id: 1,
-      title: "Economic Implications of Renewable Energy Transition"
-    },
-    {
-      id: 2,
-      title: "Digital Education and the Future of Learning"
-    },
-    {
-      id: 3,
-      title: "The Role of Technology in Sustainable Agriculture"
+  const fetchRandomTopics = useCallback(async () => {
+    try {
+      setIsLoadingTopics(true);
+      setTopicsError(null);
+      const response = await topicsAPI.getRandomTopics();
+      if (response.success && Array.isArray(response.data) && response.data.length > 0) {
+        setTopics(response.data);
+        setSelectedTopicId(null);
+      } else {
+        setTopics([]);
+        setTopicsError("No topics were returned. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to load topics", error);
+      setTopicsError("Unable to load topics. Please try again.");
+      setTopics([]);
+    } finally {
+      setIsLoadingTopics(false);
     }
-  ];
+  }, []);
 
-    const handleStartWriting = () => {
-    if (selectedTopic !== null) {
+  useEffect(() => {
+    fetchRandomTopics();
+  }, [fetchRandomTopics]);
+
+  const handleStartWriting = () => {
+    if (selectedTopicId !== null) {
       // Find the selected topic title
-      const topic = topics.find(t => t.id === selectedTopic);
+      const topic = topics.find((t) => t._id === selectedTopicId);
       
       // Save both topic ID and title to session storage
-      sessionStorage.setItem('selectedTopic', selectedTopic.toString());
+      sessionStorage.setItem('selectedTopic', selectedTopicId);
       if (topic) {
         sessionStorage.setItem('selectedTopicTitle', topic.title);
       }
@@ -70,8 +85,9 @@ const EssayTestPage = () => {
   };
 
   return (
-    <DashboardLayout>
-        <div className="bg-white">
+    <ProtectedRoute>
+      <DashboardLayout>
+          <div className="bg-white">
       {/* Timer Section */}
       <div className="flex justify-end mb-4">
         <div className="flex items-center gap-3 px-8 py-4">
@@ -100,36 +116,62 @@ const EssayTestPage = () => {
 
         {/* Topic Selection */}
         <div className="space-y-3 mb-8">
-          {topics.map((topic) => (
+          {isLoadingTopics && (
+            <div className="space-y-3">
+              {[0, 1, 2].map((skeleton) => (
+                <div
+                  key={`skeleton-${skeleton}`}
+                  className="animate-pulse flex items-center gap-4 p-4 rounded-lg border-2 border-gray-200 bg-gray-50"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gray-200" />
+                  <div className="flex-1 h-4 bg-gray-200 rounded" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isLoadingTopics && topicsError && (
+            <div className="p-4 border border-red-200 bg-red-50 text-sm text-red-700 rounded-md">
+              {topicsError}
+            </div>
+          )}
+
+          {!isLoadingTopics && !topicsError && topics.length === 0 && (
+            <div className="p-4 border border-gray-200 bg-gray-50 text-sm text-gray-600 rounded-md">
+              No topics available at the moment. Please try refreshing.
+            </div>
+          )}
+
+          {!isLoadingTopics && !topicsError && topics.map((topic, index) => (
             <div
-              key={topic.id}
-              onClick={() => setSelectedTopic(topic.id)}
+              key={topic._id}
+              onClick={() => setSelectedTopicId(topic._id)}
               className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                selectedTopic === topic.id
+                selectedTopicId === topic._id
                   ? 'border-[#1F6B63] bg-[#1F6B63]/5'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
               {/* Topic Number */}
               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-base ${
-                selectedTopic === topic.id
+                selectedTopicId === topic._id
                   ? 'bg-[#1F6B63] text-white'
                   : 'bg-gray-900 text-white'
               }`}>
-                {topic.id}
+                {(index + 1).toString().padStart(2, '0')}
               </div>
               
               {/* Topic Title */}
               <div className="flex-1">
                 <h3 className={`text-base font-medium ${
-                  selectedTopic === topic.id ? 'text-[#1F6B63]' : 'text-gray-700'
+                  selectedTopicId === topic._id ? 'text-[#1F6B63]' : 'text-gray-700'
                 }`}>
                   {topic.title}
                 </h3>
               </div>
 
               {/* Selection Indicator */}
-              {selectedTopic === topic.id && (
+              {selectedTopicId === topic._id && (
                 <div className="w-5 h-5 bg-[#1F6B63] rounded-full flex items-center justify-center">
                   <div className="w-2 h-2 bg-white rounded-full"></div>
                 </div>
@@ -142,9 +184,9 @@ const EssayTestPage = () => {
         <div className="text-center">
           <Button
             onClick={handleStartWriting}
-            disabled={selectedTopic === null}
+            disabled={selectedTopicId === null}
             className={`px-6 py-2.5 text-base font-semibold inline-flex items-center gap-2 ${
-              selectedTopic !== null
+              selectedTopicId !== null
                 ? 'bg-[#1F6B63] hover:bg-[#155a4d] text-white' 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
@@ -153,10 +195,12 @@ const EssayTestPage = () => {
             Start Essay Test
           </Button>
         </div>
+
       </div>
 
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   );
 };
 

@@ -73,7 +73,6 @@ const DashboardHero = () => {
             py-6 sm:py-8 md:py-10 lg:py-12
             shadow-sm sm:shadow-md
             relative overflow-hidden
-            max-w-sm sm:max-w-md md:max-w-4xl lg:max-w-6xl xl:max-w-7xl
           "
           style={{
             backgroundColor: "#1F6B63",

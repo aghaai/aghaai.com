@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTestNavigation } from "@/components/contexts/TestNavigationContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const EssayWritingPage = () => {
   const router = useRouter();
@@ -265,8 +266,9 @@ const EssayWritingPage = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-3 sm:space-y-4 pb-2">
+    <ProtectedRoute>
+      <DashboardLayout>
+        <div className="space-y-3 sm:space-y-4 pb-2">
         {/* Essay Topic and Timer Row - Responsive */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
           <div className="flex-1">
@@ -612,6 +614,7 @@ const EssayWritingPage = () => {
         }
       `}</style>
     </DashboardLayout>
+    </ProtectedRoute>
   );
 };
 
