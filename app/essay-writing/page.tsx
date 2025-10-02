@@ -169,14 +169,16 @@ const EssayWritingPage = () => {
     console.log("Content:", content);
     console.log("Word Count:", wordCount);
 
+    // TODO: Send essay data to API for evaluation
+    // const response = await essayAPI.submitEssay({ topic: selectedTopic, outline: essayOutline, content, wordCount });
+
     // Clear test data
     sessionStorage.removeItem("selectedTopic");
     sessionStorage.removeItem("selectedTopicTitle");
     sessionStorage.removeItem("essayMethod");
 
-    // Navigate to dashboard or results page
-    alert("Essay submitted successfully!");
-    router.push("/dashboard");
+    // Navigate to results page
+    router.push("/essay-results");
   };
 
   const execCommand = (command: string, value?: string) => {

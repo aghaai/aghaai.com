@@ -14,13 +14,15 @@ export default function Provider({ children }: { children: React.ReactNode }) {
     pathname === "/essay-evaluation" ||
     pathname === "/essay-test" ||
     pathname === "/essay-writing" ||
-    pathname === "/essay-upload";
+    pathname === "/essay-upload" ||
+    pathname === "/profile-settings" ||
+    pathname === "/essay-results";
 
   return (
     <ReduxProvider>
       <TestNavigationProvider>
         <div className="flex flex-col min-h-screen">
-          <HeaderSection />
+          {!isDashboardPage && <HeaderSection />}
           <main className="flex-grow">{children}</main>
           {!isDashboardPage && <FooterSection />}
         </div>

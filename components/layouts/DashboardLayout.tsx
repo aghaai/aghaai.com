@@ -102,13 +102,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </ProtectedLink>
                 </li>
                 <li>
-                  <a
-                    href="#"
-                    className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                  <ProtectedLink
+                    href="/profile-settings"
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      pathname === "/profile-settings"
+                        ? "bg-[#1F6B63] text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
                   >
                     <Settings className="w-5 h-5" />
                     <span className="font-medium">Profile Settings</span>
-                  </a>
+                  </ProtectedLink>
                 </li>
               </ul>
 
@@ -191,16 +195,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 </ProtectedLink>
               </li>
               <li>
-                <a
-                  href="#"
-                  className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors group"
+                <ProtectedLink
+                  href="/profile-settings"
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${
+                    pathname === "/profile-settings"
+                      ? "bg-[#1F6B63] text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
                   title={isCollapsed ? "Profile Settings" : ""}
                 >
                   <Settings className="w-5 h-5 flex-shrink-0" />
                   {!isCollapsed && (
                     <span className="font-medium">Profile Settings</span>
                   )}
-                </a>
+                </ProtectedLink>
               </li>
             </ul>
             <div className=" ">

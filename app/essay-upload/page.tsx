@@ -152,14 +152,18 @@ const EssayUploadPage = () => {
     console.log("Submitting essay file...");
     console.log("Uploaded File:", uploadedFile);
 
+    // TODO: Upload file to API for evaluation
+    // const formData = new FormData();
+    // formData.append('file', uploadedFile);
+    // const response = await essayAPI.uploadEssay(formData);
+
     // Clear test data
     sessionStorage.removeItem("selectedTopic");
     sessionStorage.removeItem("selectedTopicTitle");
     sessionStorage.removeItem("essayMethod");
 
-    // Here you would typically upload file to your server
-    alert("Essay file submitted successfully!");
-    router.push("/dashboard"); // Navigate back to dashboard
+    // Navigate to results page
+    router.push("/essay-results");
   };
 
   const formatFileSize = (bytes: number) => {

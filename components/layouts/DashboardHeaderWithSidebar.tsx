@@ -32,9 +32,13 @@ const pageConfigs = {
     title: "Essay Evaluation Test",
     description: "Instant AI Feedback on Your Essays",
   },
+   "/essay-results": {
+    title: "Essay Evaluation Results",
+    description: "Comprehensive AI-Powered feedback on your essay ",
+  },
   "/profile-settings": {
     title: "Profile Settings",
-    description: "Manage your account and preferences",
+    description: "Manage your personal details and account preferences",
   },
   "/history": {
     title: "Essay History",
