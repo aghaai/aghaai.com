@@ -3,10 +3,33 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Upload, CheckCircle2, Clock, X, FileText } from "lucide-react";
+import {
+  Upload,
+  CheckCircle2,
+  Clock,
+  X,
+  FileText,
+  Bot,
+  Database,
+  GaugeCircle,
+  Binary,
+  Target,
+  Sparkles,
+  TimerReset,
+} from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTestNavigation } from "@/components/contexts/TestNavigationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { essayAPI } from "@/lib/api/essay";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { isAxiosError } from "axios";
 
 const EssayUploadPage = () => {
   const router = useRouter();
@@ -16,8 +39,14 @@ const EssayUploadPage = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<"success" | "error">("success");
+  const [dialogTitle, setDialogTitle] = useState("Essay Submission");
+  const [dialogDescription, setDialogDescription] = useState("");
 
-  // Get selected topic from session storage
+  // Get selected topic from session storage and validate session
   useEffect(() => {
     const topicTitle = sessionStorage.getItem("selectedTopicTitle");
     if (topicTitle) {
@@ -36,6 +65,14 @@ const EssayUploadPage = () => {
       } else {
         setSelectedTopic(topics[0]);
       }
+    }
+
+    // Check if session exists on page load
+    const sessionId = sessionStorage.getItem("essaySessionId");
+    if (!sessionId) {
+      console.warn("No active session found. Redirecting to essay evaluation.");
+      // Optional: uncomment to force redirect if no session
+      // router.push("/essay-evaluation");
     }
   }, []);
 
@@ -142,28 +179,89 @@ const EssayUploadPage = () => {
     fileInputRef.current?.click();
   };
 
-  const handleSubmitEssay = () => {
+  const handleSubmitEssay = async () => {
     if (!uploadedFile) {
-      alert("Please upload a PDF file before submitting.");
+      setSubmitError("Please upload a PDF file before submitting.");
       return;
     }
 
-    setTestActive(false); // Deactivate test to allow navigation
-    console.log("Submitting essay file...");
-    console.log("Uploaded File:", uploadedFile);
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
 
-    // TODO: Upload file to API for evaluation
-    // const formData = new FormData();
-    // formData.append('file', uploadedFile);
-    // const response = await essayAPI.uploadEssay(formData);
+      // Check if session exists
+      const sessionId = sessionStorage.getItem("essaySessionId");
+      if (!sessionId) {
+        setSubmitError("No active session found. Please start a new essay test.");
+        setIsSubmitting(false);
+        setTimeout(() => {
+          router.push("/essay-evaluation");
+        }, 2000);
+        return;
+      }
+      // Note: The current API expects essayText, but for PDF upload we would typically
+      // need a different endpoint or the backend needs to handle file extraction.
+      // For now, we'll submit a placeholder indicating it's a PDF submission.
+      const response = await essayAPI.submitEssay(
+        {
+          essayText: `[PDF Upload: ${uploadedFile.name}]`,
+        },
+        sessionId
+      );
 
-    // Clear test data
-    sessionStorage.removeItem("selectedTopic");
-    sessionStorage.removeItem("selectedTopicTitle");
-    sessionStorage.removeItem("essayMethod");
+      if (response.success) {
+        setTestActive(false); // Deactivate test to allow navigation
 
-    // Navigate to results page
-    router.push("/essay-results");
+        if (response.data?.sessionId) {
+          sessionStorage.setItem("essaySessionId", response.data.sessionId);
+        }
+
+        // Store evaluation ID if provided
+        if (response.data?.evaluationId) {
+          sessionStorage.setItem("evaluationId", response.data.evaluationId);
+        }
+
+        // Clear unrelated session data
+        sessionStorage.removeItem("selectedTopic");
+        sessionStorage.removeItem("selectedTopicTitle");
+        sessionStorage.removeItem("essayMethod");
+
+        setDialogType("success");
+        setDialogTitle("Essay Submitted Successfully");
+        setDialogDescription(
+          response.message || "Your essay has been submitted for evaluation. View your results when you're ready."
+        );
+        setDialogOpen(true);
+        setSubmitError(null);
+      } else {
+        const fallbackMessage = "Failed to submit essay. Please try again.";
+        setSubmitError(fallbackMessage);
+        setDialogType("error");
+        setDialogTitle("Submission Failed");
+        setDialogDescription(response.message || fallbackMessage);
+        setDialogOpen(true);
+      }
+    } catch (err) {
+      console.error("Failed to submit essay:", err);
+      const message = isAxiosError(err)
+        ? err.response?.data?.message || err.message
+        : "An error occurred while submitting your essay.";
+      setSubmitError(message);
+      setDialogType("error");
+      setDialogTitle("Submission Failed");
+      setDialogDescription(message);
+      setDialogOpen(true);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+
+    if (!open && dialogType === "success") {
+      router.push("/essay-results");
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -175,6 +273,39 @@ const EssayUploadPage = () => {
   return (
     <ProtectedRoute>
       <DashboardLayout>
+        {isSubmitting && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#3d2323]/95 backdrop-blur-sm">
+            <div className="flex flex-col sm:flex-row items-center gap-8">
+              <div className="border-2 border-dashed border-purple-400/80 rounded-2xl p-4 sm:p-6">
+                <div className="flex flex-col gap-4">
+                  {[Bot, Database, GaugeCircle, Binary, Target, Sparkles, TimerReset].map(
+                    (Icon, index) => (
+                      <div
+                        key={`upload-loader-icon-${index}`}
+                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-900/30 border border-emerald-400/60 flex items-center justify-center"
+                      >
+                        <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-300" />
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+              <div className="border-2 border-dashed border-purple-400/80 rounded-2xl px-6 py-8 sm:px-10 sm:py-12">
+                <div className="space-y-4">
+                  {[1, 2, 3, 4].map((line) => (
+                    <p
+                      key={`upload-loader-line-${line}`}
+                      className="text-emerald-200 text-base sm:text-lg font-medium tracking-wide animate-pulse"
+                    >
+                      AI is reviewing your essay
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3 sm:space-y-4 pb-2">
         {/* Essay Topic Section */}
         <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
@@ -352,21 +483,65 @@ const EssayUploadPage = () => {
           </div>
         </div>
 
+        {/* Error Message */}
+        {submitError && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {submitError}
+          </div>
+        )}
+
         {/* Submit Button */}
         <div className="flex justify-end pt-2">
           <Button
             onClick={handleSubmitEssay}
-            disabled={!uploadedFile}
+            disabled={!uploadedFile || isSubmitting}
             className="bg-[#1F6B63] hover:bg-[#155a4d] text-white px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 inline-flex items-center gap-2 sm:gap-2.5 text-sm sm:text-base font-semibold rounded-lg shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
           >
             <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-            Submit Essay
+            {isSubmitting ? "Submitting..." : "Submit Essay"}
           </Button>
         </div>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogContent onClose={() => handleDialogOpenChange(false)}>
+          <DialogHeader>
+            <DialogTitle
+              className={
+                dialogType === "success"
+                  ? "text-[#1F6B63]"
+                  : "text-red-600"
+              }
+            >
+              {dialogTitle}
+            </DialogTitle>
+            <DialogDescription>{dialogDescription}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            {dialogType === "success" ? (
+              <Button
+                onClick={() => handleDialogOpenChange(false)}
+                className="bg-[#1F6B63] hover:bg-[#155a4d] text-white"
+              >
+                View Results
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => handleDialogOpenChange(false)}
+                className="border-gray-300"
+              >
+                Close
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </DashboardLayout>
     </ProtectedRoute>
   );
 };
 
 export default EssayUploadPage;
+

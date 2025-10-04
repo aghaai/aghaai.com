@@ -7,6 +7,8 @@ import { FileText, Play, Clock } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { topicsAPI, type Topic } from "@/lib/api/topics";
+import { essayAPI } from "@/lib/api/essay";
+import { isAxiosError } from "axios";
 
 const EssayTestPage = () => {
   const router = useRouter();
@@ -15,6 +17,8 @@ const EssayTestPage = () => {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoadingTopics, setIsLoadingTopics] = useState<boolean>(false);
   const [topicsError, setTopicsError] = useState<string | null>(null);
+  const [isSelectingTopic, setIsSelectingTopic] = useState(false);
+  const [selectError, setSelectError] = useState<string | null>(null);
 
   // Timer countdown effect
   useEffect(() => {
@@ -61,26 +65,62 @@ const EssayTestPage = () => {
     fetchRandomTopics();
   }, [fetchRandomTopics]);
 
-  const handleStartWriting = () => {
-    if (selectedTopicId !== null) {
-      // Find the selected topic title
-      const topic = topics.find((t) => t._id === selectedTopicId);
-      
-      // Save both topic ID and title to session storage
-      sessionStorage.setItem('selectedTopic', selectedTopicId);
-      if (topic) {
-        sessionStorage.setItem('selectedTopicTitle', topic.title);
+  const handleStartWriting = async () => {
+    if (selectedTopicId === null) return;
+
+    try {
+      setIsSelectingTopic(true);
+      setSelectError(null);
+
+      const sessionId = sessionStorage.getItem('essaySessionId');
+      if (!sessionId) {
+        setSelectError("No active session found. Please start a new essay test.");
+        setTimeout(() => {
+          router.push('/essay-evaluation');
+        }, 1500);
+        setIsSelectingTopic(false);
+        return;
       }
-      
-      // Check the method selected in essay-evaluation
-      const method = sessionStorage.getItem('essayMethod');
-      
-      // Navigate based on method
-      if (method === 'upload') {
-        router.push('/essay-upload');
+
+      // Call select topic API
+      const response = await essayAPI.selectTopic({
+        topicId: selectedTopicId,
+      });
+
+      if (response.success) {
+        // Find the selected topic title
+        const topic = topics.find((t) => t._id === selectedTopicId);
+        
+        // Save both topic ID and title to session storage
+        sessionStorage.setItem('selectedTopic', selectedTopicId);
+        if (topic) {
+          sessionStorage.setItem('selectedTopicTitle', topic.title);
+        }
+        
+        if (response.data?.session?._id) {
+          sessionStorage.setItem('essaySessionId', response.data.session._id);
+        }
+        
+        // Check the method selected in essay-evaluation
+        const method = sessionStorage.getItem('essayMethod');
+        
+        // Navigate based on method
+        if (method === 'upload') {
+          router.push('/essay-upload');
+        } else {
+          router.push('/essay-writing');
+        }
       } else {
-        router.push('/essay-writing');
+        setSelectError("Failed to select topic. Please try again.");
       }
+    } catch (err) {
+      console.error("Failed to select topic:", err);
+      const message = isAxiosError(err)
+        ? err.response?.data?.message || err.message
+        : "An error occurred while selecting the topic.";
+      setSelectError(message);
+    } finally {
+      setIsSelectingTopic(false);
     }
   };
 
@@ -180,19 +220,26 @@ const EssayTestPage = () => {
           ))}
         </div>
 
+        {/* Error Message */}
+        {selectError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
+            {selectError}
+          </div>
+        )}
+
         {/* Start Button */}
         <div className="text-center">
           <Button
             onClick={handleStartWriting}
-            disabled={selectedTopicId === null}
+            disabled={selectedTopicId === null || isSelectingTopic}
             className={`px-6 py-2.5 text-base font-semibold inline-flex items-center gap-2 ${
-              selectedTopicId !== null
+              selectedTopicId !== null && !isSelectingTopic
                 ? 'bg-[#1F6B63] hover:bg-[#155a4d] text-white' 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
             <Play className="w-4 h-4" />
-            Start Essay Test
+            {isSelectingTopic ? "Selecting..." : "Start Essay Test"}
           </Button>
         </div>
 

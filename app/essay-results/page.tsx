@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,12 @@ import {
   CheckCircle2,
   AlertCircle,
   Lightbulb,
+  Loader2,
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { essayAPI, type EssayResultResponse } from "@/lib/api/essay";
+import { isAxiosError } from "axios";
 
 const coreMetrics = [
   {
@@ -346,6 +349,64 @@ const actionItems = [
 
 const EssayResultsPage = () => {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [resultData, setResultData] = useState<EssayResultResponse["data"] | null>(null);
+  const [topicTitle, setTopicTitle] = useState("Climate Change and Environmental Change");
+  const [overallScore, setOverallScore] = useState(85);
+
+  // Fetch essay result on mount
+  useEffect(() => {
+    const fetchEssayResult = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Get session ID from storage
+        const sessionId = sessionStorage.getItem("essaySessionId");
+        
+        if (!sessionId) {
+          setError("No session found. Please start a new essay test.");
+          setTimeout(() => {
+            router.push("/essay-evaluation");
+          }, 2000);
+          return;
+        }
+
+        // Fetch result from API
+        const response = await essayAPI.getEssayResult(sessionId);
+
+        if (response.success && response.data) {
+          setResultData(response.data);
+          
+          // Update topic title
+          if (response.data.session.topic?.title) {
+            setTopicTitle(response.data.session.topic.title);
+          }
+          
+          // Update overall score
+          if (response.data.essayResult.extractedMetrics?.overall) {
+            setOverallScore(response.data.essayResult.extractedMetrics.overall);
+          }
+
+          // Clear session data after loading results
+          sessionStorage.removeItem("essaySessionId");
+        } else {
+          setError("Failed to load essay results. Please try again.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch essay result:", err);
+        const message = isAxiosError(err)
+          ? err.response?.data?.message || err.message
+          : "An error occurred while loading your results.";
+        setError(message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEssayResult();
+  }, [router]);
 
   const handleBackToHome = () => {
     router.push("/dashboard");
@@ -382,6 +443,32 @@ const EssayResultsPage = () => {
               </div>
             </div>
 
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="h-12 w-12 animate-spin text-[#1C6758]" />
+                <p className="mt-4 text-lg text-slate-600">Loading your essay results...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && !isLoading && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+                <AlertCircle className="mx-auto h-12 w-12 text-red-600" />
+                <h3 className="mt-4 text-lg font-semibold text-red-900">Error Loading Results</h3>
+                <p className="mt-2 text-sm text-red-700">{error}</p>
+                <Button
+                  onClick={() => router.push("/essay-evaluation")}
+                  className="mt-4 bg-red-600 hover:bg-red-700"
+                >
+                  Start New Essay Test
+                </Button>
+              </div>
+            )}
+
+            {/* Results Content */}
+            {!isLoading && !error && resultData && (
+              <>
             <section className="rounded-3xl bg-[#135F4A] px-5 py-7 text-white shadow-sm sm:px-10 sm:py-8 lg:px-14 lg:py-10">
               <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div className="space-y-3 text-center md:text-left">
@@ -389,7 +476,7 @@ const EssayResultsPage = () => {
                     Topic
                   </div>
                   <h2 className="text-xl font-semibold sm:text-2xl lg:text-[28px]">
-                    Climate Change and Environmental Change
+                    {topicTitle}
                   </h2>
                 </div>
 
@@ -398,10 +485,10 @@ const EssayResultsPage = () => {
                     Overall Essay Score
                   </span>
                   <div className="text-5xl font-bold leading-none sm:text-6xl lg:text-7xl">
-                    70%
+                    {overallScore}%
                   </div>
                   <span className="rounded-full bg-[#FFC14E] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-black sm:px-6 sm:py-3">
-                    Grade: A+
+                    Grade: {resultData?.essayResult.extractedMetrics?.grade || "N/A"}
                   </span>
                 </div>
               </div>
@@ -666,6 +753,8 @@ const EssayResultsPage = () => {
                 ))}
               </div>
             </section>
+              </>
+            )}
           </div>
         </div>
       </DashboardLayout>

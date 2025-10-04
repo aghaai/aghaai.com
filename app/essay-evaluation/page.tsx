@@ -15,17 +15,46 @@ import {
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { essayAPI } from "@/lib/api/essay";
+import { isAxiosError } from "axios";
 
 const EssayEvaluationPage = () => {
   const router = useRouter();
   const [selectedMethod, setSelectedMethod] = useState<
     "manual" | "upload" | null
   >(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleStartTest = () => {
-    if (selectedMethod) {
-      sessionStorage.setItem("essayMethod", selectedMethod);
-      router.push("/essay-test");
+  const handleStartTest = async () => {
+    if (!selectedMethod) return;
+
+    try {
+      setIsStarting(true);
+      setError(null);
+
+      // Start essay session
+      const mode = selectedMethod === "upload" ? "pdf" : "text";
+      const response = await essayAPI.startSession({ mode });
+
+      if (response.success && response.data?.sessionId) {
+        // Store session ID and method
+        sessionStorage.setItem("essaySessionId", response.data.sessionId);
+        sessionStorage.setItem("essayMethod", selectedMethod);
+        
+        // Navigate to topic selection
+        router.push("/essay-test");
+      } else {
+        setError("Failed to start essay session. Please try again.");
+      }
+    } catch (err) {
+      console.error("Failed to start session:", err);
+      const message = isAxiosError(err)
+        ? err.response?.data?.message || err.message
+        : "An error occurred while starting the session.";
+      setError(message);
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -151,15 +180,22 @@ const EssayEvaluationPage = () => {
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
+              {error}
+            </div>
+          )}
+
           {/* Start Test Button */}
           <div className="text-center">
             <Button
               onClick={handleStartTest}
-              className="bg-[#1F6B63] hover:bg-[#155a4d] text-white px-8 py-3 text-lg font-semibold inline-flex items-center gap-2"
-              disabled={!selectedMethod}
+              className="bg-[#1F6B63] hover:bg-[#155a4d] text-white px-8 py-3 text-lg font-semibold inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!selectedMethod || isStarting}
             >
               <Play className="w-5 h-5" />
-              Start Test
+              {isStarting ? "Starting..." : "Start Test"}
             </Button>
           </div>
         </div>
