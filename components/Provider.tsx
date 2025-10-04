@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import HeaderSection from "./Header";
 import FooterSection from "./FooterSection";
 import { TestNavigationProvider } from "./contexts/TestNavigationContext";
+import { UserInfoProvider } from "./contexts/UserInfoContext";
 import { ReduxProvider } from "@/lib/redux/ReduxProvider";
 
 export default function Provider({ children }: { children: React.ReactNode }) {
@@ -20,13 +21,15 @@ export default function Provider({ children }: { children: React.ReactNode }) {
 
   return (
     <ReduxProvider>
-      <TestNavigationProvider>
-        <div className="flex flex-col min-h-screen">
-          {!isDashboardPage && <HeaderSection />}
-          <main className="flex-grow">{children}</main>
-          {!isDashboardPage && <FooterSection />}
-        </div>
-      </TestNavigationProvider>
+      <UserInfoProvider>
+        <TestNavigationProvider>
+          <div className="flex flex-col min-h-screen">
+            {!isDashboardPage && <HeaderSection />}
+            <main className="flex-grow">{children}</main>
+            {!isDashboardPage && <FooterSection />}
+          </div>
+        </TestNavigationProvider>
+      </UserInfoProvider>
     </ReduxProvider>
   );
 }

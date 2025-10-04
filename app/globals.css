@@ -21,3 +21,48 @@
   .xs\:w-110 { width: 110px; }
   .xs\:h-50 { height: 50px; }
 }
+
+/* Add this in your global CSS or Tailwind configuration */
+.prose p {
+  margin-bottom: 1rem; /* Adjust spacing as needed */
+}
+
+.prose pre {
+  white-space: pre-wrap; /* Ensure whitespace is preserved */
+}
+
+.prose blockquote {
+  font-style: italic;
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  margin-bottom: 1rem;
+}
+
+/* Prevent browsers from styling autofilled fields with a different background/text color */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px inherit inset;
+  box-shadow: 0 0 0px 1000px inherit inset;
+  background-color: inherit !important;
+  transition: background-color 9999s ease-in-out;
+}
+
+input:-moz-autofill,
+textarea:-moz-autofill,
+select:-moz-autofill {
+  box-shadow: 0 0 0px 1000px inherit inset;
+  background-color: inherit !important;
+}

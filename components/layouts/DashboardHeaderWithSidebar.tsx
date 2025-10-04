@@ -7,14 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Coins, Menu, LogOut } from "lucide-react";
 import { useSidebar } from "./DashboardLayout";
 import { useAppSelector, useAppDispatch } from "@/lib/redux/hooks";
+import { useUserInfo } from "@/components/contexts/UserInfoContext";
 import { logout } from "@/lib/redux/slices/authSlice";
 import { authAPI } from "@/lib/api/auth";
 
 // Define page configurations for different dashboard pages
-const pageConfigs = {
+type PageConfig = {
+  title?: string;
+  description: string;
+  getTitle?: (context: { displayName: string }) => string;
+};
+
+const pageConfigs: Record<string, PageConfig> = {
   "/dashboard": {
-    title: "Welcome to Aghaai AI, Umer!",
     description: "Get Started with AI-powered essay evaluation",
+    getTitle: ({ displayName }) => {
+      const trimmedName = displayName.trim();
+      if (!trimmedName) {
+        return "Welcome to Aghaai AI!";
+      }
+      return `Welcome to Aghaai AI, ${trimmedName}!`;
+    },
   },
   "/essay-evaluation": {
     title: "Essay Evaluation Test",
@@ -52,6 +65,7 @@ const DashboardHeaderWithSidebar = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const { userInfo } = useUserInfo();
   const [showDropdown, setShowDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -74,6 +88,20 @@ const DashboardHeaderWithSidebar = () => {
   const currentPage =
     pageConfigs[pathname as keyof typeof pageConfigs] ||
     pageConfigs["/dashboard"];
+
+  const displayName =
+    (userInfo?.name ?? user?.name ?? "").trim();
+  const headerTitle = currentPage.getTitle
+    ? currentPage.getTitle({ displayName })
+    : currentPage.title ?? "";
+  const headerDescription = currentPage.description;
+
+  const email = userInfo?.email ?? user?.email ?? "";
+  const tokens = userInfo?.tokens;
+  const avatarSrc = userInfo?.avatar || "/assets/avatar.jpg";
+  const avatarIsRemote = userInfo?.avatar
+    ? userInfo.avatar.startsWith("http")
+    : false;
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
@@ -118,10 +146,10 @@ const DashboardHeaderWithSidebar = () => {
           {/* Title and Description - Hidden on mobile/tablet, shown on desktop */}
           <div className="hidden lg:block">
             <h1 className="text-2xl font-bold text-gray-900">
-              {currentPage.title}
+              {headerTitle}
             </h1>
             <p className="text-gray-600 mt-1 text-base">
-              {currentPage.description}
+              {headerDescription}
             </p>
           </div>
         </div>
@@ -132,7 +160,9 @@ const DashboardHeaderWithSidebar = () => {
             <span className="text-xs font-medium">
               <Coins />
             </span>
-            <span className="text-sm font-medium">2/5 Tokens</span>
+            <span className="text-sm font-medium">
+              {typeof tokens === "number" ? `${tokens}/5 Tokens` : "Tokens"}
+            </span>
           </div>
 
           {/* Buy More Button - Only on desktop */}
@@ -147,11 +177,12 @@ const DashboardHeaderWithSidebar = () => {
               className="w-10 h-10 bg-orange-400 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#1C6758] focus:ring-offset-2"
             >
               <Image
-                src="/assets/avatar.jpg"
+                src={avatarSrc}
                 alt="User Avatar"
                 width={40}
                 height={40}
                 className="w-full h-full object-cover"
+                unoptimized={avatarIsRemote}
               />
             </button>
 
@@ -163,19 +194,20 @@ const DashboardHeaderWithSidebar = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange-400 rounded-full overflow-hidden flex-shrink-0">
                       <Image
-                        src="/assets/avatar.jpg"
+                        src={avatarSrc}
                         alt="User Avatar"
                         width={40}
                         height={40}
                         className="w-full h-full object-cover"
+                        unoptimized={avatarIsRemote}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">
-                        {user?.name || "User"}
+                        {displayName || "User"}
                       </p>
                       <p className="text-xs text-gray-500 truncate">
-                        {user?.email || ""}
+                        {email}
                       </p>
                     </div>
                   </div>

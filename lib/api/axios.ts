@@ -1,12 +1,10 @@
 import axios from 'axios';
+import type { AxiosRequestHeaders } from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor to add auth token
@@ -27,19 +25,26 @@ axiosInstance.interceptors.request.use(
 
     const isPublicEndpoint = resolvedUrl ? publicEndpoints.has(resolvedUrl.pathname) : false;
 
+    config.headers = (config.headers ?? {}) as AxiosRequestHeaders;
+
     if (isPublicEndpoint) {
-      if (config.headers?.Authorization) {
+      if (config.headers.Authorization) {
         delete config.headers.Authorization;
       }
-      return config;
-    }
-
-    if (typeof window !== 'undefined') {
+    } else if (typeof window !== 'undefined') {
       const token = window.localStorage.getItem('_aT');
       if (token) {
-        config.headers = config.headers ?? {};
         config.headers.Authorization = `Bearer ${token}`;
       }
+    }
+
+    const hasFormDataSupport = typeof FormData !== 'undefined';
+    const isFormDataPayload = hasFormDataSupport && config.data instanceof FormData;
+
+    if (isFormDataPayload) {
+      delete config.headers['Content-Type'];
+    } else if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json';
     }
 
     return config;

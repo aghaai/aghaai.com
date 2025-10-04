@@ -24,7 +24,7 @@ const DashboardHero = () => {
       title: "AI-Powered Feedback System",
       description:
         "Get instant detailed feedback on your writing with advanced AI analysis.",
-      buttonText: "Try AI Feedback",
+      buttonText: "Start Essay Test",
       image: "/cta/img2.svg",
       alt: "AI Feedback",
     },
@@ -33,7 +33,7 @@ const DashboardHero = () => {
       title: "Track Your Progress",
       description:
         "Monitor your improvement with detailed analytics and performance insights.",
-      buttonText: "View Progress",
+      buttonText: "Start Essay Test",
       image: "/cta/img3.svg",
       alt: "Progress Tracking",
     },
@@ -42,7 +42,7 @@ const DashboardHero = () => {
       title: "Personalized Study Plans",
       description:
         "Customized learning paths designed specifically for your CSS success.",
-      buttonText: "Get Study Plan",
+      buttonText: "Start Essay Test",
       image: "/cta/img4.svg",
       alt: "Study Plans",
     },

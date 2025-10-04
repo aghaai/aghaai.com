@@ -322,7 +322,7 @@ const EssayWritingPage = () => {
           {/* Rich Text Editor Container */}
           <div className="flex flex-col">
             {/* Toolbar - Responsive design */}
-            <div className="flex flex-wrap items-center gap-0.5 sm:gap-1 py-2 sm:py-3 px-1 overflow-x-auto">
+            <div className="relative flex flex-wrap items-center gap-0.5 sm:gap-1 py-2 sm:py-3 px-1 overflow-visible">
               {/* Text Formatting Group */}
               <button
                 onClick={() => execCommand("bold")}

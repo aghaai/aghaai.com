@@ -106,7 +106,7 @@ export const SignUpDialog = ({ open, onOpenChange, onSwitchToLogin, onSuccessful
               <Input
                 id="fullName"
                 type="text"
-                placeholder="Ubaid Ullah"
+                placeholder="Enter your full name"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                 className="w-full"
