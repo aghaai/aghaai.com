@@ -57,9 +57,12 @@ export const SignUpDialog = ({ open, onOpenChange, onSwitchToLogin, onSuccessful
         message: `Verification code has been sent to ${formData.email}. Please check your inbox.` 
       });
     } catch (err) {
-      console.error("Sign up failed:", err);
-      const error = err as { response?: { data?: { message?: string } } };
-      const errorMessage = error?.response?.data?.message || "Failed to send verification code. Please try again.";
+      const axiosError = err as { response?: { data?: { message?: string; errors?: Array<{ message?: string }> } } };
+      const apiMessage =
+        axiosError?.response?.data?.message ||
+        axiosError?.response?.data?.errors?.[0]?.message;
+
+      const errorMessage = apiMessage || "Failed to send verification code. Please try again.";
       setError({ show: true, message: errorMessage });
     } finally {
       setIsLoading(false);

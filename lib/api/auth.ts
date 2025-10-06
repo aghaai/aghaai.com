@@ -57,7 +57,11 @@ export interface MessageResponse {
 export const authAPI = {
   // Register - Step 1: Send OTP
   registerRequest: async (data: RegisterRequestData): Promise<MessageResponse> => {
-    const response = await axiosInstance.post('/api/auth/register-request', data);
+    const payload: RegisterRequestData = {
+      email: data.email.trim().toLowerCase(),
+    };
+
+    const response = await axiosInstance.post('/api/auth/register-request', payload);
     return response.data;
   },
 
