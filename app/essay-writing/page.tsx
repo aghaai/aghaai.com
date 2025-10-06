@@ -17,13 +17,6 @@ import {
   AlignRight,
   AlignJustify,
   Palette,
-  Bot,
-  Database,
-  GaugeCircle,
-  Binary,
-  Target,
-  Sparkles,
-  TimerReset,
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTestNavigation } from "@/components/contexts/TestNavigationContext";
@@ -222,44 +215,49 @@ const EssayWritingPage = () => {
         return;
       }
 
+      // Get topic title for question
+      const topicTitle = sessionStorage.getItem("selectedTopicTitle") || selectedTopic;
+
       // Submit essay to API
-      const response = await essayAPI.submitEssay(
-        {
-          essayText: content,
-        },
-        sessionId
-      );
+      const response = await essayAPI.submitEssay({
+        essayText: content,
+        question: topicTitle,
+      });
 
       if (response.success) {
         setTestActive(false); // Deactivate test to allow navigation
 
-        if (response.data?.sessionId) {
-          sessionStorage.setItem("essaySessionId", response.data.sessionId);
-        }
-
-        // Store evaluation ID if provided
-        if (response.data?.evaluationId) {
-          sessionStorage.setItem("evaluationId", response.data.evaluationId);
+        // Store complete result data for results page
+        if (response.data?.result) {
+          console.log("Storing essay result:", response.data.result);
+          sessionStorage.setItem("essayResult", JSON.stringify(response.data.result));
+        } else {
+          console.log("No result data in response:", response.data);
         }
 
         // Clear unrelated session data
         sessionStorage.removeItem("selectedTopic");
-        sessionStorage.removeItem("selectedTopicTitle");
         sessionStorage.removeItem("essayMethod");
 
         setDialogType("success");
         setDialogTitle("Essay Submitted Successfully");
         setDialogDescription(
-          response.message || "Your essay has been submitted for evaluation. View your results when you're ready."
+          "Your essay has been evaluated successfully. Redirecting to results..."
         );
         setDialogOpen(true);
         setSubmitError(null);
+
+        // Auto redirect to results page after 2 seconds
+        setTimeout(() => {
+          setDialogOpen(false);
+          router.push("/essay-results");
+        }, 2000);
       } else {
         const fallbackMessage = "Failed to submit essay. Please try again.";
         setSubmitError(fallbackMessage);
         setDialogType("error");
         setDialogTitle("Submission Failed");
-        setDialogDescription(response.message || fallbackMessage);
+        setDialogDescription(fallbackMessage);
         setDialogOpen(true);
       }
     } catch (err) {
@@ -280,6 +278,7 @@ const EssayWritingPage = () => {
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
 
+    // If dialog is closed and it was a success, redirect to results
     if (!open && dialogType === "success") {
       router.push("/essay-results");
     }
@@ -377,23 +376,10 @@ const EssayWritingPage = () => {
         {isSubmitting && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#3d2323]/95 backdrop-blur-sm">
             <div className="flex flex-col sm:flex-row items-center gap-8">
-              <div className="border-2 border-dashed border-purple-400/80 rounded-2xl p-4 sm:p-6">
-                <div className="flex flex-col gap-4">
-                  {[Bot, Database, GaugeCircle, Binary, Target, Sparkles, TimerReset].map(
-                    (Icon, index) => (
-                      <div
-                        key={`loader-icon-${index}`}
-                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-900/30 border border-emerald-400/60 flex items-center justify-center"
-                      >
-                        <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-300" />
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-              <div className="border-2 border-dashed border-purple-400/80 rounded-2xl px-6 py-8 sm:px-10 sm:py-12">
+             
+              <div className=" px-6 py-8 sm:px-10 sm:py-12">
                 <div className="space-y-4">
-                  {[1, 2, 3, 4].map((line) => (
+                  {[1].map((line) => (
                     <p
                       key={`loader-line-${line}`}
                       className="text-emerald-200 text-base sm:text-lg font-medium tracking-wide animate-pulse"

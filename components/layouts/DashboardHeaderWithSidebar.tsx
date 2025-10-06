@@ -161,7 +161,7 @@ const DashboardHeaderWithSidebar = () => {
               <Coins />
             </span>
             <span className="text-sm font-medium">
-              {typeof tokens === "number" ? `${tokens}/5 Tokens` : "Tokens"}
+              {typeof tokens === "number" ? `${tokens} Tokens` : "Tokens"}
             </span>
           </div>
 

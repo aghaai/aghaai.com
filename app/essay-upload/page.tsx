@@ -199,46 +199,51 @@ const EssayUploadPage = () => {
         }, 2000);
         return;
       }
+      // Get topic title for question
+      const topicTitle = sessionStorage.getItem("selectedTopicTitle") || selectedTopic;
+
       // Note: The current API expects essayText, but for PDF upload we would typically
       // need a different endpoint or the backend needs to handle file extraction.
       // For now, we'll submit a placeholder indicating it's a PDF submission.
-      const response = await essayAPI.submitEssay(
-        {
-          essayText: `[PDF Upload: ${uploadedFile.name}]`,
-        },
-        sessionId
-      );
+      const response = await essayAPI.submitEssay({
+        essayText: `[PDF Upload: ${uploadedFile.name}]`,
+        question: topicTitle,
+      });
 
       if (response.success) {
         setTestActive(false); // Deactivate test to allow navigation
 
-        if (response.data?.sessionId) {
-          sessionStorage.setItem("essaySessionId", response.data.sessionId);
-        }
-
-        // Store evaluation ID if provided
-        if (response.data?.evaluationId) {
-          sessionStorage.setItem("evaluationId", response.data.evaluationId);
+        // Store complete result data for results page
+        if (response.data?.result) {
+          console.log("Storing essay result:", response.data.result);
+          sessionStorage.setItem("essayResult", JSON.stringify(response.data.result));
+        } else {
+          console.log("No result data in response:", response.data);
         }
 
         // Clear unrelated session data
         sessionStorage.removeItem("selectedTopic");
-        sessionStorage.removeItem("selectedTopicTitle");
         sessionStorage.removeItem("essayMethod");
 
         setDialogType("success");
         setDialogTitle("Essay Submitted Successfully");
         setDialogDescription(
-          response.message || "Your essay has been submitted for evaluation. View your results when you're ready."
+          "Your essay has been evaluated successfully. Redirecting to results..."
         );
         setDialogOpen(true);
         setSubmitError(null);
+
+        // Auto redirect to results page after 2 seconds
+        setTimeout(() => {
+          setDialogOpen(false);
+          router.push("/essay-results");
+        }, 2000);
       } else {
         const fallbackMessage = "Failed to submit essay. Please try again.";
         setSubmitError(fallbackMessage);
         setDialogType("error");
         setDialogTitle("Submission Failed");
-        setDialogDescription(response.message || fallbackMessage);
+        setDialogDescription(fallbackMessage);
         setDialogOpen(true);
       }
     } catch (err) {
@@ -259,6 +264,7 @@ const EssayUploadPage = () => {
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
 
+    // If dialog is closed and it was a success, redirect to results
     if (!open && dialogType === "success") {
       router.push("/essay-results");
     }

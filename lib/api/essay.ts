@@ -7,12 +7,10 @@ export interface StartSessionPayload {
 export interface StartSessionResponse {
   success: boolean;
   data: {
+    message: string;
     sessionId: string;
-    mode: string;
-    createdAt: string;
-    [key: string]: unknown;
   };
-  message?: string;
+  timestamp: string;
 }
 
 export interface SelectTopicPayload {
@@ -22,35 +20,53 @@ export interface SelectTopicPayload {
 export interface SelectTopicResponse {
   success: boolean;
   data: {
-    session?: {
-      _id: string;
-      mode: string;
-      topic?: {
-        _id: string;
-        title?: string;
-      };
-      [key: string]: unknown;
-    };
-    topicId?: string;
-    topicTitle?: string;
-    [key: string]: unknown;
+    message: string;
+    sessionId: string;
   };
-  message?: string;
+  timestamp: string;
+}
+
+export interface StartEssayResponse {
+  success: boolean;
+  data: {
+    message: string;
+    sessionId: string;
+  };
+  timestamp: string;
 }
 
 export interface SubmitEssayPayload {
   essayText: string;
+  question: string;
 }
 
 export interface SubmitEssayResponse {
   success: boolean;
   data: {
-    sessionId?: string;
-    evaluationId?: string;
-    score?: number;
-    [key: string]: unknown;
+    message: string;
+    result: {
+      user: string;
+      session: string;
+      essayText: string;
+      pdfUrl?: string;
+      rawResponse: {
+        overall_score: number;
+        grade: string;
+        executive_summary: string;
+        [key: string]: unknown;
+      };
+      extractedMetrics: {
+        overall_score: number;
+        grade: string;
+        executive_summary: string;
+        [key: string]: unknown;
+      };
+      createdAt: string;
+      updatedAt: string;
+      id: string;
+    };
   };
-  message?: string;
+  timestamp: string;
 }
 
 export interface EssayResultResponse {
@@ -145,16 +161,23 @@ export const essayAPI = {
     return response.data;
   },
 
+  startEssay: async (): Promise<StartEssayResponse> => {
+    const response = await axiosInstance.post(
+      '/api/essay/sessions/start-essay',
+      {},
+      {
+        headers: {
+          ...getAuthHeader(),
+        },
+      }
+    );
+
+    return response.data;
+  },
+
   submitEssay: async (
     payload: SubmitEssayPayload,
-    sessionId?: string,
   ): Promise<SubmitEssayResponse> => {
-    let resolvedSessionId = sessionId;
-
-    if (!resolvedSessionId && typeof window !== 'undefined') {
-      resolvedSessionId = sessionStorage.getItem('essaySessionId') ?? undefined;
-    }
-
     const response = await axiosInstance.post(
       '/api/essay/sessions/submit',
       payload,
@@ -162,11 +185,6 @@ export const essayAPI = {
         headers: {
           ...getAuthHeader(),
         },
-        params: resolvedSessionId
-          ? {
-              sessionId: resolvedSessionId,
-            }
-          : undefined,
       }
     );
 

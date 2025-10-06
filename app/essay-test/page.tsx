@@ -97,18 +97,28 @@ const EssayTestPage = () => {
           sessionStorage.setItem('selectedTopicTitle', topic.title);
         }
         
-        if (response.data?.session?._id) {
-          sessionStorage.setItem('essaySessionId', response.data.session._id);
+        // Update session ID from response
+        if (response.data?.sessionId) {
+          sessionStorage.setItem('essaySessionId', response.data.sessionId);
         }
+
+        // Call start-essay endpoint
+        const startEssayResponse = await essayAPI.startEssay();
         
-        // Check the method selected in essay-evaluation
-        const method = sessionStorage.getItem('essayMethod');
-        
-        // Navigate based on method
-        if (method === 'upload') {
-          router.push('/essay-upload');
+        if (startEssayResponse.success && startEssayResponse.data?.sessionId) {
+          sessionStorage.setItem('essaySessionId', startEssayResponse.data.sessionId);
+          
+          // Check the method selected in essay-evaluation
+          const method = sessionStorage.getItem('essayMethod');
+          
+          // Navigate based on method
+          if (method === 'upload') {
+            router.push('/essay-upload');
+          } else {
+            router.push('/essay-writing');
+          }
         } else {
-          router.push('/essay-writing');
+          setSelectError("Failed to start essay. Please try again.");
         }
       } else {
         setSelectError("Failed to select topic. Please try again.");
