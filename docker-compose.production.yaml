@@ -1,0 +1,6 @@
+services:
+  aghaai.com:
+      build: .
+      ports:
+        - 1004:3000
+      restart: always
