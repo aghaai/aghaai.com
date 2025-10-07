@@ -72,7 +72,26 @@ export interface SubmitEssayResponse {
 export interface EssayResultResponse {
   success: boolean;
   data: {
-    session: {
+    message?: string;
+    result?: {
+      user: string;
+      session: string;
+      essayText?: string;
+      pdfUrl?: string | null;
+      rawResponse?: Record<string, unknown>;
+      extractedMetrics?: {
+        grammarScore?: unknown;
+        contentRelevanceScore?: unknown;
+        overall?: number;
+        grade?: string;
+        [key: string]: unknown;
+      };
+      createdAt: string;
+      updatedAt: string;
+      id: string;
+    };
+    // Legacy structure (keeping for backward compatibility)
+    session?: {
       _id: string;
       mode: string;
       status: string;
@@ -86,7 +105,7 @@ export interface EssayResultResponse {
       durationMinutes?: number;
       tokensUsed?: number;
     };
-    essayResult: {
+    essayResult?: {
       _id: string;
       user: {
         _id: string;
@@ -111,6 +130,7 @@ export interface EssayResultResponse {
     };
   };
   message?: string;
+  timestamp?: string;
 }
 
 const getAuthHeader = () => {
@@ -190,12 +210,49 @@ export const essayAPI = {
 
     return response.data;
   },
+  
 
   getEssayResult: async (
     sessionId: string,
   ): Promise<EssayResultResponse> => {
     const response = await axiosInstance.get(
       `/api/essay/sessions/result/${sessionId}`,
+      {
+        headers: {
+          ...getAuthHeader(),
+        },
+      }
+    );
+
+    return response.data;
+  },
+};
+
+export interface EssayHistoryItem {
+  sessionId: string;
+  topicTitle: string;
+  mode: 'text' | 'pdf';
+  date: string;
+  status: 'evaluated' | 'pending' | 'in-progress';
+}
+
+export interface EssayHistoryResponse {
+  success: boolean;
+  data: {
+    history: EssayHistoryItem[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+    };
+  };
+  timestamp: string;
+}
+
+export const essayHistoryAPI = {
+  getHistory: async (page: number = 1, limit: number = 10): Promise<EssayHistoryResponse> => {
+    const response = await axiosInstance.get(
+      `/api/essay/sessions/history?page=${page}&limit=${limit}`,
       {
         headers: {
           ...getAuthHeader(),

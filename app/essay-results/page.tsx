@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
-  RefreshCw,
+  // RefreshCw,
   ArrowRight,
   CheckCircle2,
   AlertCircle,
@@ -14,96 +14,259 @@ import {
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { essayAPI } from "@/lib/api/essay";
 
 const EssayResultsPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resultData, setResultData] = useState<Record<string, unknown> | null>(null);
-  const [topicTitle, setTopicTitle] = useState("Essay Topic");
-  const [overallScore, setOverallScore] = useState(0);
-  const [grade, setGrade] = useState("");
-  const [executiveSummary, setExecutiveSummary] = useState("");
-  const [strengths, setStrengths] = useState<string[]>([]);
-  const [weaknesses, setWeaknesses] = useState<string[]>([]);
-  const [recommendations, setRecommendations] = useState<string[]>([]);
-  const [coreMetrics, setCoreMetrics] = useState<Record<string, unknown>>({});
-  const [languageMetrics, setLanguageMetrics] = useState<Record<string, unknown>>({});
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
-  // Load essay result from stored data on mount
+  // Load essay result from stored data on mount and when session changes
   useEffect(() => {
-    const loadEssayResult = () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    const loadEssayResult = async () => {
+      setIsLoading(true);
+      setError(null);
 
-        // Get stored result data
-        const storedResult = sessionStorage.getItem("essayResult");
-        const storedTopicTitle = sessionStorage.getItem("selectedTopicTitle");
+      let transformedResult: Record<string, unknown> | null = null;
+      let derivedTopicTitle: string | null = null;
+      let derivedMethod: "manual" | "upload" | null = null;
+      let fallbackErrorMessage: string | null = null;
+      
+      try {
+        const sessionId = sessionStorage.getItem("essaySessionId");
+        const resultSource = sessionStorage.getItem("essayResultSource"); // "submit" or "history"
+        const submissionData = sessionStorage.getItem("pendingEssaySubmission");
         
-        if (!storedResult) {
-          setError("No essay result found. Please start a new essay test.");
-          setIsLoading(false);
-          return;
+        console.log("Loading essay result - sessionId:", sessionId, "source:", resultSource, "currentSessionId:", currentSessionId);
+        
+        // Update current session ID state
+        setCurrentSessionId(sessionId);
+        
+        if (sessionId) {
+          // Check if this is a fresh submission (POST) or history selection (GET)
+          if (resultSource === "submit" && submissionData) {
+            // This is a fresh submission - use POST API
+            try {
+              const submissionPayload = JSON.parse(submissionData);
+              console.log("Submitting fresh essay for evaluation:", submissionPayload);
+              
+              const response = await essayAPI.submitEssay(submissionPayload);
+              
+              if (response.success && response.data?.result) {
+                const apiResult = response.data.result;
+                const rawResponse = (apiResult.rawResponse ?? {}) as Record<string, unknown>;
+                const extractedMetrics = (apiResult.extractedMetrics ?? {}) as Record<string, unknown>;
+                const topicFromResult = ((apiResult as Record<string, unknown>).topicTitle as string | undefined);
+                const pdfUrl = (apiResult.pdfUrl ?? null) as string | null;
+
+                derivedTopicTitle = topicFromResult || sessionStorage.getItem("selectedTopicTitle") || null;
+                derivedMethod = pdfUrl ? "upload" : "manual";
+
+                transformedResult = {
+                  ...apiResult,
+                  rawResponse,
+                  extractedMetrics,
+                  pdfUrl,
+                  topicTitle: derivedTopicTitle ?? undefined,
+                  sessionId,
+                  source: "submit"
+                } as Record<string, unknown>;
+                
+                console.log("Fresh submission result:", transformedResult);
+                
+                // Clear the pending submission data
+                sessionStorage.removeItem("pendingEssaySubmission");
+                sessionStorage.removeItem("essayResultSource");
+              }
+            } catch (submitError) {
+              console.error("Failed to submit essay:", submitError);
+              if (submitError instanceof Error) {
+                fallbackErrorMessage = submitError.message;
+              } else {
+                fallbackErrorMessage = "Failed to submit essay for evaluation.";
+              }
+            }
+          } else {
+            // This is history selection - use GET API
+            // First, try to load from sessionStorage if it matches current session
+            const storedResult = sessionStorage.getItem("essayResult");
+            
+            if (storedResult) {
+              try {
+                const parsedResult = JSON.parse(storedResult) as Record<string, unknown>;
+                const storedSessionId = (parsedResult?.sessionId as string) || null;
+                
+                // Only use stored result if it matches current session
+                if (storedSessionId === sessionId) {
+                  const parsedPdfUrl = (parsedResult?.pdfUrl as string | null) ?? null;
+                  transformedResult = parsedResult;
+                  derivedTopicTitle = (parsedResult?.topicTitle as string | undefined) || sessionStorage.getItem("selectedTopicTitle");
+                  derivedMethod = (parsedResult?.essayMethod as "manual" | "upload") || (parsedPdfUrl ? "upload" : "manual");
+                  
+                  console.log("Loaded result from sessionStorage:", transformedResult);
+                }
+              } catch (parseError) {
+                console.error("Failed to parse stored result:", parseError);
+                // Continue to try API fallback
+              }
+            }
+
+            // Try GET API if we don't have stored data for this session
+            if (!transformedResult && sessionId) {
+              try {
+                console.log("Attempting to fetch essay result from history for sessionId:", sessionId);
+                const response = await essayAPI.getEssayResult(sessionId);
+
+                if (response.success && response.data) {
+                  const apiResult = response.data.result || response.data.essayResult;
+                  if (apiResult) {
+                    const rawResponse = (apiResult.rawResponse ?? {}) as Record<string, unknown>;
+                    const extractedMetrics = (apiResult.extractedMetrics ?? {}) as Record<string, unknown>;
+                    const topicFromResult = ((apiResult as Record<string, unknown>).topicTitle as string | undefined);
+                    const topicFromSession = response.data.session?.topic?.title;
+                    const topicFromRaw = typeof rawResponse.topic === "string" ? rawResponse.topic : undefined;
+                    const topicFromRawTitle = typeof rawResponse.topic_title === "string" ? rawResponse.topic_title : undefined;
+                    const pdfUrl = (apiResult.pdfUrl ?? null) as string | null;
+
+                    derivedTopicTitle =
+                      topicFromResult || topicFromSession || topicFromRaw || topicFromRawTitle || sessionStorage.getItem("selectedTopicTitle") || null;
+                    
+                    console.log("Topic title sources:", {
+                      topicFromResult,
+                      topicFromSession,
+                      topicFromRaw,
+                      topicFromRawTitle,
+                      sessionStorage: sessionStorage.getItem("selectedTopicTitle"),
+                      final: derivedTopicTitle
+                    });
+                    derivedMethod = pdfUrl ? "upload" : "manual";
+
+                    transformedResult = {
+                      ...apiResult,
+                      rawResponse,
+                      extractedMetrics,
+                      pdfUrl,
+                      topicTitle: derivedTopicTitle ?? undefined,
+                      sessionId,
+                      source: "history"
+                    } as Record<string, unknown>;
+                    
+                    console.log("Loaded result from history API:", transformedResult);
+                  }
+                }
+              } catch (apiError) {
+                console.error("Failed to fetch essay result from history API:", apiError);
+
+                if (apiError instanceof Error) {
+                  const errorMessage = apiError.message;
+                  
+                  // Handle specific error cases
+                  if (errorMessage === "Session not yet evaluated") {
+                    setError("Your essay is still being evaluated by our AI. Please wait a moment and try again.");
+                    return;
+                  } else if (errorMessage === "Your session has expired. Please log in again.") {
+                    setError("Your session has expired. Please log in again.");
+                    return;
+                  } else if (errorMessage === "The requested resource was not found.") {
+                    setError("This essay session could not be found. It may have been deleted or you may not have permission to view it.");
+                    return;
+                  }
+                  
+                  fallbackErrorMessage = errorMessage;
+                } else {
+                  fallbackErrorMessage = "Failed to load essay results.";
+                }
+              }
+            }
+          }
         }
 
-        try {
-          const result = JSON.parse(storedResult);
-          console.log("Loaded essay result data:", result);
-          
-          // Update topic title
-          if (storedTopicTitle) {
-            setTopicTitle(storedTopicTitle);
-          }
-          
-          // Extract data from the result
-          const extractedMetrics = result.extractedMetrics || {};
-          const rawResponse = result.rawResponse || {};
-          const coreEvalMetrics = rawResponse.core_evaluation_metrics || {};
-          
-          // Update basic info
-          setOverallScore(extractedMetrics.overall_score || rawResponse.overall_score || 0);
-          setGrade(extractedMetrics.grade || rawResponse.grade || '');
-          setExecutiveSummary(extractedMetrics.executive_summary || rawResponse.executive_summary || '');
-          setStrengths(extractedMetrics.strengths_to_retain || rawResponse.strengths_to_retain || []);
-          setWeaknesses(extractedMetrics.weaknesses || rawResponse.weaknesses || []);
-          setRecommendations(extractedMetrics.next_steps_recommendations || rawResponse.next_steps_recommendations || []);
-          
-          // Update core metrics
-          setCoreMetrics(coreEvalMetrics);
-          
-          // Update language metrics
-          setLanguageMetrics(rawResponse.language_accuracy_style || {});
-          
-          // Store complete result for reference
-          setResultData(result);
+        
+        if (transformedResult) {
+          const finalTopicTitle = derivedTopicTitle || sessionStorage.getItem("selectedTopicTitle") || null;
+          const finalMethod = derivedMethod || (transformedResult?.pdfUrl ? "upload" : "manual");
 
-          // Keep session data available for potential page refreshes
-          // sessionStorage.removeItem("essayResult");
-          // sessionStorage.removeItem("essaySessionId");
-          // sessionStorage.removeItem("selectedTopicTitle");
-        } catch (parseError) {
-          console.error("Failed to parse stored result:", parseError);
-          setError("Invalid result data. Please start a new essay test.");
+          const finalResult = {
+            ...transformedResult,
+            topicTitle: finalTopicTitle,
+            sessionId, // Ensure session ID is stored with result
+          } as Record<string, unknown>;
+
+          setResultData(finalResult);
+          sessionStorage.setItem("essayResult", JSON.stringify(finalResult));
+          if (finalTopicTitle) {
+            sessionStorage.setItem("selectedTopicTitle", finalTopicTitle);
+          }
+          sessionStorage.setItem("essayMethod", finalMethod);
+          // Only set loading to false if we have data to show
+          setIsLoading(false);
+        } else {
+          setError(
+            fallbackErrorMessage ||
+              "No essay result found. Please start a new essay test."
+          );
+          setIsLoading(false);
         }
       } catch (err) {
-        console.error("Failed to load essay result:", err);
+        console.error("An unexpected error occurred while loading essay result:", err);
         setError("An error occurred while loading your results.");
-      } finally {
         setIsLoading(false);
       }
     };
 
     loadEssayResult();
-  }, [router]);
+  }, [router, currentSessionId]);
+
+  // Listen for storage events to handle when history items are clicked
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const newSessionId = sessionStorage.getItem("essaySessionId");
+      if (newSessionId && newSessionId !== currentSessionId) {
+        setCurrentSessionId(newSessionId);
+      }
+    };
+
+    // Listen for custom events when sessionStorage changes from same window
+    const handleCustomStorageChange = (event: CustomEvent) => {
+      if (event.detail?.key === "essaySessionId") {
+        const newSessionId = event.detail.newValue;
+        console.log("Session storage changed:", {
+          oldValue: event.detail.oldValue,
+          newValue: newSessionId,
+          currentSessionId: currentSessionId
+        });
+        if (newSessionId && newSessionId !== currentSessionId) {
+          console.log("Setting new session ID:", newSessionId);
+          setCurrentSessionId(newSessionId);
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("sessionStorageChange", handleCustomStorageChange as EventListener);
+
+    // Check on mount for initial session ID
+    const initialSessionId = sessionStorage.getItem("essaySessionId");
+    if (initialSessionId !== currentSessionId) {
+      setCurrentSessionId(initialSessionId);
+    }
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("sessionStorageChange", handleCustomStorageChange as EventListener);
+    };
+  }, [currentSessionId]);
 
   const handleBackToHome = () => {
     router.push("/dashboard");
   };
 
-  const handleReattemptTopic = () => {
-    router.push("/essay-test");
-  };
+  // const handleReattemptTopic = () => {
+  //   router.push("/essay-test");
+  // };
 
   return (
     <ProtectedRoute>
@@ -119,7 +282,7 @@ const EssayResultsPage = () => {
                 Back to Home
               </button>
 
-              <div className="flex items-center gap-3">
+              {/* <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   size="sm"
@@ -129,7 +292,7 @@ const EssayResultsPage = () => {
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Reattempt Topic
                 </Button>
-              </div>
+              </div> */}
             </div>
 
             {/* Loading State */}
@@ -156,89 +319,106 @@ const EssayResultsPage = () => {
             )}
 
             {/* Results Content */}
-            {!isLoading && !error && resultData && (
-              <>
-            {/* Topic and Overall Score Header */}
-            <section className="rounded-3xl bg-[#135F4A] px-5 py-7 text-white shadow-sm sm:px-10 sm:py-8 lg:px-14 lg:py-10">
-              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                <div className="space-y-3 text-center md:text-left">
-                  <div className="inline-flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/80 md:justify-start">
-                    Topic
-                  </div>
-                  <h1 className="text-xl font-bold leading-tight sm:text-2xl lg:text-3xl">
-                    {topicTitle}
-                  </h1>
-                </div>
-                <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-6">
-                  <div className="text-center">
-                    <div className="text-sm font-medium text-white/80">
-                      Essay Score
-                    </div>
-                    <div className="text-4xl font-bold sm:text-5xl">
-                      {overallScore}
-                    </div>
-                    {grade && (
-                      <div className="mt-1 text-lg font-semibold">
-                        Grade: {grade}
-                      </div>
-                    )}
-                  </div>
-                  <div className="h-12 w-px bg-white/20 hidden sm:block"></div>
-                  <div className="text-center">
-                    <div className="text-sm font-medium text-white/80">
-                      Status
-                    </div>
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                      <CheckCircle2 className="h-5 w-5 text-white" />
-                      <span className="font-semibold">Evaluated</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
+            {!isLoading && !error && resultData && (() => {
+              const rawResponse = (resultData as Record<string, unknown>).rawResponse as Record<string, unknown> || {};
+              const extractedMetrics = (resultData as Record<string, unknown>).extractedMetrics as Record<string, unknown> || {};
+              
+              // Only use actual data from API, no fallbacks to static data
+              const topicTitle = (resultData as Record<string, unknown>).topicTitle as string | undefined;
+              const overallScore = (extractedMetrics.overall as number) || (rawResponse.overall_score as number) || null;
+              const grade = (extractedMetrics.grade as string) || (rawResponse.grade as string) || null;
+              const executiveSummary = (rawResponse.executive_summary as string) || null;
+              const strengths = (rawResponse.strengths_to_retain as string[]) || null;
+              const weaknesses = (rawResponse.weaknesses as string[]) || null;
+              const recommendations = (rawResponse.next_steps_recommendations as string[]) || null;
+              const coreMetrics = (rawResponse.core_evaluation_metrics as Record<string, unknown>) || null;
+              const languageMetrics = (rawResponse.language_accuracy_style as Record<string, unknown>) || null;
+              const detailedAnalysis = (rawResponse.detailed_analysis as Record<string, unknown>) || null;
+              const quickFixes = (rawResponse.quick_mechanical_fixes as Record<string, unknown>) || null;
+              const modelCorrections = (rawResponse.model_corrections_examples as Record<string, unknown>) || null;
 
-            {/* Executive Summary */}
-            {executiveSummary && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-4 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                  Executive Summary
-                </h2>
-                <div className="rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-700 sm:text-base">
-                  {executiveSummary}
+              return (
+                <>
+            {/* Topic and Overall Score Header - Only show if we have real data */}
+            {(topicTitle || overallScore || grade) && (
+              <section className="rounded-3xl bg-[#135F4A] px-5 py-7 text-white shadow-sm sm:px-10 sm:py-8 lg:px-14 lg:py-10">
+                <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                  {topicTitle && (
+                    <div className="space-y-3 text-center md:text-left">
+                      <div className="inline-flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/80 md:justify-start">
+                        Topic
+                      </div>
+                      <h2 className="text-xl font-semibold sm:text-2xl lg:text-[28px]">
+                        {topicTitle}
+                      </h2>
+                    </div>
+                  )}
+
+                  {(overallScore || grade) && (
+                    <div className="flex flex-col items-center gap-2 md:items-end">
+                      <span className="text-xs font-medium uppercase tracking-wide text-white/80">
+                        Overall Essay Score
+                      </span>
+                      {overallScore && (
+                        <div className="text-5xl font-bold leading-none sm:text-6xl lg:text-7xl">
+                          {overallScore}%
+                        </div>
+                      )}
+                      {grade && (
+                        <span className="rounded-full bg-[#FFC14E] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-black sm:px-6 sm:py-3">
+                          Grade: {grade}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </section>
             )}
 
-            {/* Core Evaluation Metrics */}
-            {Object.keys(coreMetrics).length > 0 && (
+            {/* Executive Summary - Only show if data exists */}
+            {executiveSummary && executiveSummary.trim() && (
+              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                <h2 className="mb-4 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                  Executive Summary
+                </h2>
+                <p className="text-sm leading-relaxed text-slate-600 sm:text-base lg:text-[17px]">
+                  {executiveSummary}
+                </p>
+              </section>
+            )}
+
+            {/* Core Evaluation Metrics - Only show if data exists */}
+            {coreMetrics && Object.keys(coreMetrics).length > 0 && (
               <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
                 <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
                   Core Evaluation Metrics
                 </h2>
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-4">
                   {Object.entries(coreMetrics)
                     .filter(([key]) => !key.includes('_comment'))
                     .map(([key, value]) => {
                       const commentKey = `${key}_comment`;
-                      const comment = coreMetrics[commentKey] || '';
+                      const comment = (coreMetrics as Record<string, unknown>)[commentKey] || '';
                       const score = typeof value === 'number' ? value : 0;
-                      const title = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      const title = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
                       
                       return (
                         <div
                           key={key}
-                          className="flex items-start justify-between rounded-2xl border border-gray-100 px-5 py-6 sm:px-6"
+                          className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-[#FAFAFA] px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"
                         >
-                          <div className="flex-1">
-                            <h3 className="text-base font-semibold text-slate-800 sm:text-lg">
-                              {title}
-                            </h3>
-                            <p className="mt-2 text-sm text-slate-600 sm:text-[15px]">
-                              {String(comment || '')}
-                            </p>
+                          <div className="flex items-start gap-4">
+                            <div className="space-y-1">
+                              <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
+                                {title}
+                              </h3>
+                              <p className="text-sm text-slate-500 sm:text-[15px]">
+                                {String(comment)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="ml-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E0ECFF] text-sm font-semibold text-[#1E40AF]">
-                            {score}
+                          <div className="inline-flex items-center justify-center rounded-2xl bg-[#E0ECFF] px-5 py-3 text-sm font-semibold text-black sm:text-base">
+                            {score}/100
                           </div>
                         </div>
                       );
@@ -247,8 +427,8 @@ const EssayResultsPage = () => {
               </section>
             )}
 
-            {/* Language Accuracy & Style */}
-            {Object.keys(languageMetrics).length > 0 && (
+            {/* Language Accuracy & Style - Only show if data exists */}
+            {languageMetrics && Object.keys(languageMetrics).length > 0 && (
               <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
                 <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
                   Language Accuracy & Style
@@ -304,15 +484,167 @@ const EssayResultsPage = () => {
               </section>
             )}
 
-            {/* Strengths to Retain */}
-            {strengths.length > 0 && (
+            {/* Detailed Analysis - Only show if data exists */}
+            {detailedAnalysis && Object.keys(detailedAnalysis).length > 0 && (
+              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                  Detailed Analysis
+                </h2>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {Object.entries(detailedAnalysis).map(([key, data]) => {
+                    const dataObj = data as Record<string, unknown>;
+                    const title = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+                    const issues = Array.isArray(dataObj?.issues) ? dataObj.issues : [];
+                    const recommendations = Array.isArray(dataObj?.recommendations) ? dataObj.recommendations : [];
+                    
+                    return (
+                      <div key={key} className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
+                            {title}
+                          </h3>
+                        </div>
+                        <div className="space-y-2 py-3">
+                          {issues.length > 0 && (
+                            <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
+                              <p className="mb-1 flex items-center gap-2 text-sm font-semibold text-rose-600">
+                                <AlertCircle className="h-4 w-4" />
+                                Issue
+                              </p>
+                              <ul className="ml-6 space-y-1">
+                                {issues.map((issue: string, idx: number) => (
+                                  <li key={idx} className="text-xs leading-relaxed text-rose-700 sm:text-sm list-disc">
+                                    {issue}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {recommendations.length > 0 && (
+                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                              <p className="mb-1 flex items-center gap-2 text-xs font-semibold text-emerald-600 sm:text-sm">
+                                <Lightbulb className="h-4 w-4" />
+                                Recommendation
+                              </p>
+                              <ul className="ml-6 space-y-1">
+                                {recommendations.map((rec: string, idx: number) => (
+                                  <li key={idx} className="text-xs leading-relaxed text-emerald-700 sm:text-sm list-disc">
+                                    {rec}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Quick Mechanical Fixes - Only show if data exists */}
+            {quickFixes && Object.keys(quickFixes).length > 0 && (() => {
+              const hasExamples = Object.values(quickFixes).some((data) => {
+                const dataObj = data as Record<string, unknown>;
+                const examples = Array.isArray(dataObj?.examples) ? dataObj.examples : [];
+                return examples.length > 0;
+              });
+              
+              return hasExamples ? (
+                <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                  <h2 className="mb-5 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                    Quick Mechanical Fixes
+                  </h2>
+                  <div className="space-y-6">
+                    {Object.entries(quickFixes)
+                      .map(([category, data]) => {
+                        const dataObj = data as Record<string, unknown>;
+                        const categoryTitle = category.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+                        const issuesCount = dataObj?.issues_count || 0;
+                        const examples = Array.isArray(dataObj?.examples) ? dataObj.examples : [];
+                        
+                        if (examples.length === 0) return null;
+                        
+                        return (
+                          <div key={category}>
+                            <h3 className="mb-3 text-base font-semibold text-slate-900">{categoryTitle} ({issuesCount as number} issues)</h3>
+                          <div className="space-y-3">
+                            {examples.map((fix: Record<string, unknown>, index: number) => (
+                              <div
+                                key={`${category}-fix-${index}`}
+                                className="flex items-start gap-3 rounded-2xl bg-[#FFF9E6] px-4 py-3 text-sm sm:text-base"
+                              >
+                                <AlertCircle className="mt-0.5 h-5 w-5 text-[#E6B800]" />
+                                <div className="flex-1">
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <span className="text-rose-600 font-medium">{String(fix.before || '')}</span>
+                                    <ArrowRight className="h-4 w-4 text-slate-500" />
+                                    <span className="text-emerald-600 font-medium">{String(fix.after || '')}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null;
+            })()}
+
+            {/* Model Corrections & Examples - Only show if data exists */}
+            {modelCorrections && Object.keys(modelCorrections).length > 0 && (() => {
+              const hasValidContent = Object.values(modelCorrections).some(value => 
+                typeof value === 'string' && value.trim().length > 0
+              );
+              
+              return hasValidContent ? (
+                <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                  <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                    Model Corrections & Examples
+                  </h2>
+                  <div className="space-y-6">
+                    {Object.entries(modelCorrections).map(([key, value], index) => {
+                      if (typeof value !== 'string' || !value.trim()) return null;
+                      const title = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+                      
+                      return (
+                        <div key={key} className="space-y-3">
+                          <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
+                            {title}
+                          </h3>
+                          <div
+                            className={`rounded-2xl px-4 py-4 ${
+                              index === 0
+                                ? "bg-[#F0FDF4]"
+                                : index === 1
+                                  ? "bg-[#EFF6FF]"
+                                  : "bg-[#FAF5FF]"
+                            }`}
+                          >
+                            <p className="text-md leading-relaxed whitespace-pre-wrap">
+                              {value}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null;
+            })()}
+
+            {/* Strengths to Retain - Only show if data exists */}
+            {strengths && Array.isArray(strengths) && strengths.length > 0 && (
               <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
                 <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-emerald-600 sm:text-xl">
                   <CheckCircle2 className="mr-2 inline h-5 w-5" />
                   Strengths to Retain
                 </h2>
                 <div className="space-y-3">
-                  {strengths.map((strength, index) => (
+                  {strengths.map((strength: string, index: number) => (
                     <div key={index} className="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
                       <p className="text-sm text-emerald-800 sm:text-base">{strength}</p>
@@ -322,15 +654,15 @@ const EssayResultsPage = () => {
               </section>
             )}
 
-            {/* Areas for Improvement */}
-            {weaknesses.length > 0 && (
+            {/* Areas for Improvement - Only show if data exists */}
+            {weaknesses && Array.isArray(weaknesses) && weaknesses.length > 0 && (
               <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
                 <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-amber-600 sm:text-xl">
                   <AlertCircle className="mr-2 inline h-5 w-5" />
                   Areas for Improvement
                 </h2>
                 <div className="space-y-3">
-                  {weaknesses.map((weakness, index) => (
+                  {weaknesses.map((weakness: string, index: number) => (
                     <div key={index} className="flex items-start gap-3 rounded-lg border border-amber-100 bg-amber-50 p-4">
                       <AlertCircle className="mt-0.5 h-4 w-4 text-amber-600" />
                       <p className="text-sm text-amber-800 sm:text-base">{weakness}</p>
@@ -340,15 +672,15 @@ const EssayResultsPage = () => {
               </section>
             )}
 
-            {/* Next Steps Recommendations */}
-            {recommendations.length > 0 && (
+            {/* Next Steps Recommendations - Only show if data exists */}
+            {recommendations && Array.isArray(recommendations) && recommendations.length > 0 && (
               <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
                 <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
                   <Lightbulb className="mr-2 inline h-5 w-5" />
                   Next Steps & Recommendations
                 </h2>
                 <div className="space-y-3">
-                  {recommendations.map((recommendation, index) => (
+                  {recommendations.map((recommendation: string, index: number) => (
                     <div key={index} className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4">
                       <Lightbulb className="mt-0.5 h-4 w-4 text-blue-600" />
                       <p className="text-sm text-blue-800 sm:text-base">{recommendation}</p>
@@ -370,7 +702,7 @@ const EssayResultsPage = () => {
               </section>
             )}
 
-            <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+            {/* <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-[#1C6758] mb-4">What&apos;s Next?</h3>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -390,9 +722,10 @@ const EssayResultsPage = () => {
                   </Button>
                 </div>
               </div>
-            </section>
-              </>
-            )}
+            </section> */}
+                </>
+              );
+            })()}
           </div>
         </div>
       </DashboardLayout>

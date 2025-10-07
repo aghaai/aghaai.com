@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import LayoutWrapper from "../Wrapper/LayoutWrapper";
+import LoadingOverlay from "../LoadingOverlay";
 import {
   LoginDialog,
   SignUpDialog,
@@ -31,6 +32,7 @@ const HeaderSection = () => {
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [isPasswordResetFlow, setIsPasswordResetFlow] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Dialog handlers
   const openLogin = () => setActiveDialog("login");
@@ -59,17 +61,25 @@ const HeaderSection = () => {
     if (isPasswordResetFlow) {
       openCreatePassword();
     } else {
-      sessionStorage.setItem("justLoggedIn", "true");
+      // Mark as new registration to show welcome dialog
+      setIsRedirecting(true);
+      sessionStorage.setItem("justRegistered", "true");
       sessionStorage.setItem("userName", userName);
-      router.push("/dashboard");
+      // Small delay to show loading state
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 300);
     }
   };
 
   const handleSuccessfulLogin = (name: string) => {
     setUserName(name);
-    sessionStorage.setItem("justLoggedIn", "true");
-    sessionStorage.setItem("userName", name);
-    router.push("/dashboard");
+    setIsRedirecting(true);
+    // Don't set justLoggedIn for returning users
+    // Small delay to show loading state
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 300);
   };
 
   const handleForgotPasswordEmailSent = (email: string) => {
@@ -124,6 +134,9 @@ const HeaderSection = () => {
 
   return (
     <>
+      {/* Loading Overlay - Only shows during login/registration redirect */}
+      <LoadingOverlay isLoading={isRedirecting} />
+
       {/* Only render header for non-dashboard pages */}
       {!isDashboard && <LandingHeaderContent />}
 

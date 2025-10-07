@@ -150,9 +150,21 @@ export const LoginDialog = ({ open, onOpenChange, onSwitchToSignUp, onForgotPass
         })
       );
 
+      // Keep loading state active during redirect
+      // Close dialog first
       onOpenChange(false);
-      onSuccessfulLogin?.(user.name || user.email || "");
-      router.push("/dashboard");
+      
+      // Call success callback if provided (this will handle redirect with loading)
+      if (onSuccessfulLogin) {
+        onSuccessfulLogin(user.name || user.email || "");
+      } else {
+        // If no callback, redirect directly after a short delay
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 300);
+      }
+      
+      // Don't set isLoading to false here - let redirect happen
     } catch (err) {
       if (process.env.NODE_ENV !== "production") {
         console.warn("Login failed", err);

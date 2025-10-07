@@ -54,6 +54,77 @@ export interface UpdatePasswordResponse {
   [key: string]: unknown;
 }
 
+export interface UserStatsTrendItem {
+  date: string;
+  score?: number;
+}
+
+export interface UserStatsData {
+  lastScore: number;
+  improvement: {
+    percent: number;
+    direction: "up" | "down" | "no-change";
+  };
+  averageScore: number;
+  passRate: number;
+  trend: UserStatsTrendItem[];
+  performanceOutcome: {
+    successful: number;
+    unsuccessful: number;
+  };
+}
+
+export interface UserStatsResponse {
+  success: boolean;
+  data: UserStatsData;
+  timestamp: string;
+}
+
+export interface LanguageStyleOverviewItem {
+  date: string;
+  topicTitle: string;
+  overallScore: number;
+  grammarScore: number;
+  toneScore: number;
+  sentenceScore: number;
+  vocabScore: number;
+}
+
+export interface CoreMatrixOverviewItem {
+  date: string;
+  topicTitle: string;
+  overallScore: number;
+  contentRelevance: number;
+  organization: number;
+  language: number;
+  criticalThinking: number;
+  outlineQuality: number;
+}
+
+export interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+}
+
+export interface LanguageStyleOverviewResponse {
+  success: boolean;
+  data: {
+    overview: LanguageStyleOverviewItem[];
+    pagination: PaginationInfo;
+  };
+  timestamp: string;
+}
+
+export interface CoreMatrixOverviewResponse {
+  success: boolean;
+  data: {
+    overview: CoreMatrixOverviewItem[];
+    pagination: PaginationInfo;
+  };
+  timestamp: string;
+}
+
 const getAuthHeader = () => {
   if (typeof window === 'undefined') {
     return {};
@@ -98,6 +169,45 @@ export const userAPI = {
         ...getAuthHeader(),
       },
     });
+
+    return response.data;
+  },
+  getUserStats: async (): Promise<UserStatsResponse> => {
+    const response = await axiosInstance.get('/api/users/user-stats', {
+      headers: {
+        ...getAuthHeader(),
+      },
+    });
+
+    return response.data;
+  },
+  getLanguageStyleOverview: async (
+    page: number = 1,
+    limit: number = 5,
+  ): Promise<LanguageStyleOverviewResponse> => {
+    const response = await axiosInstance.get(
+      `/api/users/evaluation-overview/language-and-style?page=${page}&limit=${limit}`,
+      {
+        headers: {
+          ...getAuthHeader(),
+        },
+      }
+    );
+
+    return response.data;
+  },
+  getCoreMatrixOverview: async (
+    page: number = 1,
+    limit: number = 5,
+  ): Promise<CoreMatrixOverviewResponse> => {
+    const response = await axiosInstance.get(
+      `/api/users/evaluation-overview/core-matrix?page=${page}&limit=${limit}`,
+      {
+        headers: {
+          ...getAuthHeader(),
+        },
+      }
+    );
 
     return response.data;
   },

@@ -17,6 +17,7 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { essayAPI } from "@/lib/api/essay";
 import { isAxiosError } from "axios";
+import { essayTimer } from "@/lib/utils/essayTimer";
 
 const EssayEvaluationPage = () => {
   const router = useRouter();
@@ -41,6 +42,9 @@ const EssayEvaluationPage = () => {
         // Store session ID and method
         sessionStorage.setItem("essaySessionId", response.data.sessionId);
         sessionStorage.setItem("essayMethod", selectedMethod);
+        
+        // Start the essay timer (3 hours = 180 minutes = 10800 seconds)
+        essayTimer.start(3 * 60 * 60);
         
         // Navigate to topic selection
         router.push("/essay-test");
@@ -86,7 +90,7 @@ const EssayEvaluationPage = () => {
                 <h3 className="font-semibold text-[#A83D81] text-lg">
                   Topic Choice
                 </h3>
-                <p className="text-sm text-gray-600">3 options provided</p>
+                <p className="text-sm text-gray-600">5 options provided</p>
               </div>
             </div>
             {/* Purple checkmark */}
@@ -111,7 +115,7 @@ const EssayEvaluationPage = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-[#5AAD49] text-lg">
-                  Time Limit:
+                  Time Limit
                 </h3>
                 <p className="text-sm text-gray-600">3 hours maximum</p>
               </div>
@@ -124,7 +128,7 @@ const EssayEvaluationPage = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-[#5DADC3] text-lg">
-                  Word Count:
+                  Word Count
                 </h3>
                 <p className="text-sm text-gray-600">2500 words minimum</p>
               </div>
@@ -151,9 +155,9 @@ const EssayEvaluationPage = () => {
                 }`}
                 onClick={() => setSelectedMethod("manual")}
               >
-                <CardContent className="p-8 text-center">
+                <CardContent className="px-8 py-6 text-center">
                   <Edit3 className="w-6 h-6 mx-auto" />
-                  <h4 className="font-semibold text-lg">Write Manually</h4>
+                  <h4 className="font-medium text-xl">Write Typing</h4>
                   <p className="text-sm text-[#ADADAD]">
                     Type your essay directly in our rich text editor
                   </p>
@@ -169,11 +173,11 @@ const EssayEvaluationPage = () => {
                 }`}
                 onClick={() => setSelectedMethod("upload")}
               >
-                <CardContent className="p-8 text-center">
+                <CardContent className="px-8 py-6 text-center">
                   <Upload className="w-6 h-6 mx-auto" />
-                  <h4 className="font-semibold text-lg">Upload Images/PDF</h4>
+                  <h4 className="font-medium text-xl">Upload PDF</h4>
                   <p className="text-sm text-[#ADADAD]">
-                    Upload images/PDF of handwritten essays
+                    Upload PDF of handwritten essays
                   </p>
                 </CardContent>
               </Card>

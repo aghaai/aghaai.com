@@ -19,34 +19,124 @@ import DashboardHero from "@/components/LandingPage/sections/DashboardHero";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { WelcomeDialog } from "@/components/dialogs";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { 
+  userAPI, 
+  type UserStatsData,
+  type LanguageStyleOverviewItem, 
+  type CoreMatrixOverviewItem,
+  type PaginationInfo 
+} from "@/lib/api/user";
 
 const DashboardPage = () => {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [userName, setUserName] = useState("User");
-  const [hasEssays, setHasEssays] = useState(false);
+  const hasEssays = true; // Always show data from API
   const [activeMetricTab, setActiveMetricTab] = useState<"language" | "core">(
     "core"
   );
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 5;
 
-  // Sample data for populated view
-  const progressData = [
-    { date: "20 May", score: 60 },
-    { date: "21 June", score: 80 },
-    { date: "25 July", score: 35 },
-    { date: "10 Sep", score: 70 },
-    { date: "10 Sep", score: 50 },
-    { date: "28 Sep", score: 85 },
-  ];
+  // API data states
+  const [userStats, setUserStats] = useState<UserStatsData | null>(null);
+  const [languageOverview, setLanguageOverview] = useState<LanguageStyleOverviewItem[]>([]);
+  const [coreMatrixOverview, setCoreMatrixOverview] = useState<CoreMatrixOverviewItem[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const pieData = [
-    { name: "Successful", value: 5, color: "#10b981" },
-    { name: "Unsuccessful", value: 2, color: "#ef4444" },
-  ];
+  // Transform user stats for chart
+  const progressData = useMemo(() => {
+    // Check if userStats has trend data
+    if (!userStats || !userStats.trend || userStats.trend.length === 0) {
+      // Fallback data
+      return [
+        { date: "20 May", score: 60 },
+        { date: "21 June", score: 80 },
+        { date: "25 July", score: 35 },
+        { date: "10 Sep", score: 70 },
+        { date: "10 Sep", score: 50 },
+        { date: "28 Sep", score: 85 },
+      ];
+    }
 
-  const evaluationHistory = useMemo(
-    () => [
+    // Transform API trend data for chart
+    return userStats.trend
+      .filter(item => item && item.score !== undefined && item.score !== null)
+      .map(item => ({
+        date: new Date(item.date).toLocaleDateString('en-US', { 
+          day: 'numeric', 
+          month: 'short' 
+        }),
+        score: item.score || 0
+      }))
+      .slice(-6); // Show last 6 entries
+  }, [userStats]);
+
+  const pieData = useMemo(() => {
+    if (!userStats) {
+      return [
+        { name: "Successful", value: 0, color: "#10b981" },
+        { name: "Unsuccessful", value: 0, color: "#ef4444" },
+      ];
+    }
+
+    return [
+      { name: "Successful", value: userStats.performanceOutcome.successful, color: "#10b981" },
+      { name: "Unsuccessful", value: userStats.performanceOutcome.unsuccessful, color: "#ef4444" },
+    ];
+  }, [userStats]);
+
+  const evaluationHistory = useMemo(() => {
+    // If we have API data and it's being displayed, use it
+    if (activeMetricTab === "language" && languageOverview && languageOverview.length > 0) {
+      return languageOverview.map(item => ({
+        date: item.date,
+        topic: item.topicTitle,
+        overallScore: item.overallScore,
+        coreMetrics: {
+          contentRelevance: 0, // Not available in language overview
+          organization: 0,
+          language: 0,
+          criticalThinking: 0,
+          outlineQuality: 0,
+        },
+        languageMetrics: {
+          grammar: item.grammarScore,
+          tone: item.toneScore,
+          sentenceClarity: item.sentenceScore,
+          vocabulary: item.vocabScore,
+        },
+      }));
+    }
+    
+    if (activeMetricTab === "core" && coreMatrixOverview && coreMatrixOverview.length > 0) {
+      return coreMatrixOverview.map(item => ({
+        date: item.date,
+        topic: item.topicTitle,
+        overallScore: item.overallScore,
+        coreMetrics: {
+          contentRelevance: item.contentRelevance,
+          organization: item.organization,
+          language: item.language,
+          criticalThinking: item.criticalThinking,
+          outlineQuality: item.outlineQuality,
+        },
+        languageMetrics: {
+          grammar: 0, // Not available in core matrix
+          tone: 0,
+          sentenceClarity: 0,
+          vocabulary: 0,
+        },
+      }));
+    }
+
+    // Fallback sample data
+    return [
       {
         date: "20 Oct 2025",
         topic: "Climate Change and Environment Change",
@@ -84,24 +174,6 @@ const DashboardPage = () => {
         },
       },
       {
-        date: "20 Oct 2025",
-        topic: "Climate Change and Environment Change",
-        overallScore: 39,
-        coreMetrics: {
-          contentRelevance: 32,
-          organization: 64,
-          language: 46,
-          criticalThinking: 22,
-          outlineQuality: 46,
-        },
-        languageMetrics: {
-          grammar: 32,
-          tone: 64,
-          sentenceClarity: 46,
-          vocabulary: 22,
-        },
-      },
-      {
         date: "05 Sep 2025",
         topic: "Economic Inequality",
         overallScore: 92,
@@ -119,79 +191,153 @@ const DashboardPage = () => {
           vocabulary: 22,
         },
       },
-      {
-        date: "25 May 2025",
-        topic: "Climate Change and Environment Change",
-        overallScore: 18,
-        coreMetrics: {
-          contentRelevance: 32,
-          organization: 64,
-          language: 46,
-          criticalThinking: 22,
-          outlineQuality: 46,
-        },
-        languageMetrics: {
-          grammar: 32,
-          tone: 64,
-          sentenceClarity: 46,
-          vocabulary: 22,
-        },
-      },
-      {
-        date: "19 Apr 2025",
-        topic: "Global Trade Policies",
-        overallScore: 58,
-        coreMetrics: {
-          contentRelevance: 30,
-          organization: 62,
-          language: 44,
-          criticalThinking: 28,
-          outlineQuality: 40,
-        },
-        languageMetrics: {
-          grammar: 30,
-          tone: 58,
-          sentenceClarity: 44,
-          vocabulary: 24,
-        },
-      },
-      {
-        date: "12 Mar 2025",
-        topic: "Technological Advancement in Education",
-        overallScore: 74,
-        coreMetrics: {
-          contentRelevance: 36,
-          organization: 70,
-          language: 50,
-          criticalThinking: 32,
-          outlineQuality: 52,
-        },
-        languageMetrics: {
-          grammar: 34,
-          tone: 66,
-          sentenceClarity: 48,
-          vocabulary: 30,
-        },
-      },
-    ],
-    []
-  );
+    ];
+  }, [activeMetricTab, languageOverview, coreMatrixOverview]);
+
+  // Use API data directly - no need to calculate since API provides the values
+  const calculatedStats = useMemo(() => {
+    if (!userStats) {
+      return {
+        totalEssays: 0,
+        lastScore: 0,
+        averageScore: 0,
+        passRate: 0,
+        passCount: 0,
+        previousScore: 0,
+        improvementPercent: 0,
+        improvementDirection: "no-change" as const,
+      };
+    }
+
+    const totalEssays = userStats.trend ? userStats.trend.length : 0;
+    const passCount = userStats.performanceOutcome.successful;
+    
+    // For previous score, get the second-to-last score from trend
+    const validTrendScores = userStats.trend
+      ? userStats.trend.filter(item => item.score !== undefined && item.score !== null)
+      : [];
+    const previousScore = validTrendScores.length > 1 ? validTrendScores[validTrendScores.length - 2]?.score || 0 : 0;
+
+    return {
+      totalEssays,
+      lastScore: userStats.lastScore,
+      averageScore: userStats.averageScore,
+      passRate: userStats.passRate,
+      passCount,
+      previousScore,
+      improvementPercent: userStats.improvement.percent,
+      improvementDirection: userStats.improvement.direction,
+    };
+  }, [userStats]);
 
   const totalPages = useMemo(() => {
     if (!hasEssays) {
       return 1;
     }
+    // Use API pagination if available, otherwise fall back to local calculation
+    if (pagination && pagination.totalPages > 0) {
+      return pagination.totalPages;
+    }
     return Math.max(1, Math.ceil(evaluationHistory.length / rowsPerPage));
-  }, [evaluationHistory, rowsPerPage, hasEssays]);
+  }, [evaluationHistory, rowsPerPage, hasEssays, pagination]);
 
   const paginatedHistory = useMemo(() => {
     if (!hasEssays) {
       return [];
     }
 
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    return evaluationHistory.slice(startIndex, startIndex + rowsPerPage);
-  }, [currentPage, evaluationHistory, rowsPerPage, hasEssays]);
+    // Since we're using API pagination, return evaluationHistory directly
+    // The API already returns the correct page of data
+    return evaluationHistory;
+  }, [evaluationHistory, hasEssays]);
+
+  // Fetch initial data on component mount
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch user stats
+        const statsResponse = await userAPI.getUserStats();
+        if (statsResponse) {
+          // Handle different response structures
+          if (Array.isArray(statsResponse)) {
+            setUserStats(statsResponse.data);
+          } else if (statsResponse.success && statsResponse.data) {
+            setUserStats(statsResponse.data);
+          } else if (statsResponse.data && Array.isArray(statsResponse.data)) {
+            setUserStats(statsResponse.data);
+          }
+        }
+
+        // Fetch initial overview data based on active tab
+        if (activeMetricTab === "language") {
+          const langResponse = await userAPI.getLanguageStyleOverview(1, 5);
+          if (langResponse.success) {
+            setLanguageOverview(langResponse.data.overview);
+            setPagination(langResponse.data.pagination);
+          }
+        } else {
+          const coreResponse = await userAPI.getCoreMatrixOverview(1, 5);
+          if (coreResponse.success) {
+            setCoreMatrixOverview(coreResponse.data.overview);
+            setPagination(coreResponse.data.pagination);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        
+        // Handle specific error messages from our improved API
+        const errorMessage = err instanceof Error 
+          ? err.message 
+          : "Failed to load dashboard data. Please try again.";
+        
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInitialData();
+  }, [activeMetricTab]); // Include activeMetricTab dependency
+
+  // Fetch overview data when tab or page changes
+  useEffect(() => {
+    const fetchOverviewData = async () => {
+      try {
+        setError(null);
+        
+        if (activeMetricTab === "language") {
+          const response = await userAPI.getLanguageStyleOverview(currentPage, 5);
+          if (response.success) {
+            setLanguageOverview(response.data.overview);
+            setPagination(response.data.pagination);
+          }
+        } else {
+          const response = await userAPI.getCoreMatrixOverview(currentPage, 5);
+          if (response.success) {
+            setCoreMatrixOverview(response.data.overview);
+            setPagination(response.data.pagination);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching overview data:", err);
+        
+        // Handle specific error messages from our improved API
+        const errorMessage = err instanceof Error 
+          ? err.message 
+          : "Failed to load evaluation data. Please try again.";
+        
+        setError(errorMessage);
+      }
+    };
+
+    // Only fetch if not loading initial data
+    if (!isLoading) {
+      fetchOverviewData();
+    }
+  }, [activeMetricTab, currentPage, isLoading]);
 
   useEffect(() => {
     const justLoggedIn = sessionStorage.getItem("justLoggedIn");
@@ -229,15 +375,38 @@ const DashboardPage = () => {
       <DashboardLayout>
         <DashboardHero />
 
-        {/* Toggle Switch */}
-        <div className="mb-6 flex justify-end">
-          <button
-            onClick={() => setHasEssays(!hasEssays)}
-            className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-md font-medium transition-colors text-sm"
-          >
-            {hasEssays ? "Show Empty State" : "Show With Data"}
-          </button>
-        </div>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="mb-6">
+            <div className="flex items-center justify-center p-8 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className="text-gray-600">Loading dashboard data...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="mb-6">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">Error loading dashboard data</h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <p>{error}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card>
@@ -246,19 +415,20 @@ const DashboardPage = () => {
                 <h3 className="font-semibold text-gray-900">Last Score</h3>
               </div>
 
-              {hasEssays ? (
+              {!isLoading && (userStats || calculatedStats.totalEssays > 0) ? (
                 <>
                   <div className="flex items-baseline gap-1 mb-1">
                     <span className="text-3xl font-bold text-green-600">
-                      85
+                      {calculatedStats.lastScore}
                     </span>
                     <span className="text-3xl font-bold text-green-600">
                       /100
                     </span>
                   </div>
-                  <p className="text-gray-500 text-sm mt-3">
-                    <TrendingUp className="w-3 h-3 mt-3" />
-                    +12 from previous
+                  <p className="text-gray-500 text-sm mt-3 flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    {calculatedStats.lastScore - calculatedStats.previousScore >= 0 ? '+' : ''}
+                    {calculatedStats.lastScore - calculatedStats.previousScore} from previous
                   </p>
                 </>
               ) : (
@@ -281,18 +451,18 @@ const DashboardPage = () => {
                 <h3 className="font-semibold text-gray-900">Average Score</h3>
               </div>
 
-              {hasEssays ? (
+              {!isLoading && (userStats || calculatedStats.totalEssays > 0) ? (
                 <>
                   <div className="flex items-baseline gap-1 mb-1">
                     <span className="text-3xl font-bold text-purple-600">
-                      72
+                      {calculatedStats.averageScore}
                     </span>
                     <span className="text-3xl font-bold text-purple-600">
                       /100
                     </span>
                   </div>
                   <p className="text-gray-500 text-sm">
-                    Based on 5 previous essays
+                    Based on {calculatedStats.totalEssays} essay{calculatedStats.totalEssays !== 1 ? 's' : ''}
                   </p>
                 </>
               ) : (
@@ -313,15 +483,17 @@ const DashboardPage = () => {
                 <h3 className="font-semibold text-gray-900">Pass Rate</h3>
               </div>
 
-              {hasEssays ? (
+              {!isLoading && (userStats || calculatedStats.totalEssays > 0) ? (
                 <>
                   <div className="flex items-baseline gap-1 mb-1">
                     <span className="text-3xl font-bold text-yellow-600">
-                      80
+                      {calculatedStats.passRate}
                     </span>
                     <span className="text-gray-500">%</span>
                   </div>
-                  <p className="text-gray-500 text-sm">3 out of 5 essays</p>
+                  <p className="text-gray-500 text-sm">
+                    {calculatedStats.passCount} out of {calculatedStats.totalEssays} essay{calculatedStats.totalEssays !== 1 ? 's' : ''}
+                  </p>
                 </>
               ) : (
                 <>
@@ -347,12 +519,14 @@ const DashboardPage = () => {
                 Progress Trend
               </h3>
               <p className="text-gray-500 text-sm mb-4">
-                {hasEssays
-                  ? "Your essay scores over time"
-                  : "Your essay scores will appear here"}
+                Your essay scores over time
               </p>
 
-              {hasEssays ? (
+              {isLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : progressData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={progressData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -463,7 +637,7 @@ const DashboardPage = () => {
               )}
             </div>
 
-            {hasEssays ? (
+            {!isLoading && (evaluationHistory.length > 0 || languageOverview.length > 0 || coreMatrixOverview.length > 0) ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -511,7 +685,31 @@ const DashboardPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedHistory.map((essay, index) => (
+                    {isLoading ? (
+                      Array.from({ length: 3 }).map((_, index) => (
+                        <tr key={index} className="border-b border-gray-100 h-16 align-middle">
+                          <td className="py-4 px-4 align-middle">
+                            <div className="animate-pulse">
+                              <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
+                              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 align-middle">
+                            <div className="animate-pulse">
+                              <div className="h-4 bg-gray-200 rounded w-16"></div>
+                            </div>
+                          </td>
+                          {Array.from({ length: activeMetricTab === "language" ? 4 : 5 }).map((_, i) => (
+                            <td key={i} className="py-4 px-4 align-middle">
+                              <div className="animate-pulse">
+                                <div className="h-4 bg-gray-200 rounded w-8"></div>
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    ) : (
+                      paginatedHistory.map((essay, index) => (
                       <tr
                         key={index}
                         className="border-b border-gray-100 hover:bg-gray-50 h-16 align-middle"
@@ -570,7 +768,8 @@ const DashboardPage = () => {
                           </>
                         )}
                       </tr>
-                    ))}
+                      ))
+                    )}
                   </tbody>
                 </table>
                 <div className="flex flex-wrap gap-3 mt-4 text-sm">
