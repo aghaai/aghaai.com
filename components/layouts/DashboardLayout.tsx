@@ -15,7 +15,6 @@ import {
   PanelRightClose,
   Hourglass,
   Loader2,
-  RotateCcw,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -100,25 +99,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     }
   };
 
-  // Function to refresh history
-  const refreshHistory = async () => {
-    try {
-      setIsLoadingHistory(true);
-      const response = await essayHistoryAPI.getHistory(1, 20);
-      if (response.success) {
-        setEssayHistory(response.data.history);
-        setCurrentPage(1);
-        setHasMoreData(
-          response.data.pagination.currentPage <
-            response.data.pagination.totalPages
-        );
-      }
-    } catch (error) {
-      console.error("Failed to refresh essay history:", error);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
 
   const handleHistoryClick = (sessionId: string) => {
     console.log("History clicked - sessionId:", sessionId);
@@ -241,11 +221,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       <span className="font-medium text-[#6B7280]">
                         History
                       </span>
-                      {essayHistory.length > 0 && (
-                        <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-                          {essayHistory.length}
-                        </span>
-                      )}
                     </div>
                     {isHistoryExpanded ? (
                       <ChevronUp className="w-4 h-4 text-[#6B7280]" />
@@ -253,18 +228,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       <ChevronDown className="w-4 h-4 text-[#6B7280]" />
                     )}
                   </button>
-                  {isHistoryExpanded && (
-                    <button
-                      onClick={refreshHistory}
-                      className="p-1 rounded-md hover:bg-gray-100 transition-colors ml-2"
-                      title="Refresh history"
-                      disabled={isLoadingHistory}
-                    >
-                      <RotateCcw
-                        className={`w-4 h-4 text-[#6B7280] ${isLoadingHistory ? "animate-spin" : ""}`}
-                      />
-                    </button>
-                  )}
                 </div>
 
                 {isHistoryExpanded && (
@@ -438,11 +401,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                         <span className="font-medium text-[#6B7280]">
                           History
                         </span>
-                        {essayHistory.length > 0 && (
-                          <span className="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">
-                            {essayHistory.length}
-                          </span>
-                        )}
                       </div>
                       {isHistoryExpanded ? (
                         <ChevronUp className="w-4 h-4 text-[#6B7280]" />
@@ -450,18 +408,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                         <ChevronDown className="w-4 h-4 text-[#6B7280]" />
                       )}
                     </button>
-                    {isHistoryExpanded && (
-                      <button
-                        onClick={refreshHistory}
-                        className="p-1 rounded-md hover:bg-gray-100 transition-colors ml-2"
-                        title="Refresh history"
-                        disabled={isLoadingHistory}
-                      >
-                        <RotateCcw
-                          className={`w-4 h-4 text-[#6B7280] ${isLoadingHistory ? "animate-spin" : ""}`}
-                        />
-                      </button>
-                    )}
                   </div>
 
                   {isHistoryExpanded && (

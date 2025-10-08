@@ -339,27 +339,22 @@ const DashboardPage = () => {
     }
   }, [activeMetricTab, currentPage, isLoading]);
 
-  useEffect(() => {
-    const justLoggedIn = sessionStorage.getItem("justLoggedIn");
-    const storedUserName = sessionStorage.getItem("userName");
-    const welcomeDialogShown = sessionStorage.getItem("welcomeDialogShown");
+    useEffect(() => {
+    const justRegistered = sessionStorage.getItem("justRegistered");
+    const savedUserName = sessionStorage.getItem("userName");
 
-    if (storedUserName) {
-      setUserName(storedUserName);
-      sessionStorage.removeItem("userName");
+    if (savedUserName) {
+      setUserName(savedUserName);
     }
 
-    const shouldShowDialog = justLoggedIn === "true" || welcomeDialogShown !== "true";
-    if (!shouldShowDialog) {
-      return;
+    // Show welcome dialog only for new registrations (not for regular login)
+    if (justRegistered === "true") {
+      setShowWelcomeDialog(true);
+      // Clean up the justRegistered flag
+      sessionStorage.removeItem("justRegistered");
+      // Mark as shown to prevent future automatic displays
+      sessionStorage.setItem("welcomeDialogShown", "true");
     }
-
-    if (justLoggedIn === "true") {
-      sessionStorage.removeItem("justLoggedIn");
-    }
-
-    setShowWelcomeDialog(true);
-    sessionStorage.setItem("welcomeDialogShown", "true");
   }, []);
 
   useEffect(() => {

@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Lightbulb,
   Loader2,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -20,8 +22,21 @@ const EssayResultsPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [resultData, setResultData] = useState<Record<string, unknown> | null>(null);
+  const [resultData, setResultData] = useState<Record<string, unknown> | null>(
+    null
+  );
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    // All accordions start closed by default
+  });
+
+  // Toggle accordion section
+  const toggleSection = (sectionKey: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
 
   // Load essay result from stored data on mount and when session changes
   useEffect(() => {
@@ -33,35 +48,53 @@ const EssayResultsPage = () => {
       let derivedTopicTitle: string | null = null;
       let derivedMethod: "manual" | "upload" | null = null;
       let fallbackErrorMessage: string | null = null;
-      
+
       try {
         const sessionId = sessionStorage.getItem("essaySessionId");
         const resultSource = sessionStorage.getItem("essayResultSource"); // "submit" or "history"
         const submissionData = sessionStorage.getItem("pendingEssaySubmission");
-        
-        console.log("Loading essay result - sessionId:", sessionId, "source:", resultSource, "currentSessionId:", currentSessionId);
-        
+
+        console.log(
+          "Loading essay result - sessionId:",
+          sessionId,
+          "source:",
+          resultSource,
+          "currentSessionId:",
+          currentSessionId
+        );
+
         // Update current session ID state
         setCurrentSessionId(sessionId);
-        
+
         if (sessionId) {
           // Check if this is a fresh submission (POST) or history selection (GET)
           if (resultSource === "submit" && submissionData) {
             // This is a fresh submission - use POST API
             try {
               const submissionPayload = JSON.parse(submissionData);
-              console.log("Submitting fresh essay for evaluation:", submissionPayload);
-              
+              console.log(
+                "Submitting fresh essay for evaluation:",
+                submissionPayload
+              );
+
               const response = await essayAPI.submitEssay(submissionPayload);
-              
+
               if (response.success && response.data?.result) {
                 const apiResult = response.data.result;
-                const rawResponse = (apiResult.rawResponse ?? {}) as Record<string, unknown>;
-                const extractedMetrics = (apiResult.extractedMetrics ?? {}) as Record<string, unknown>;
-                const topicFromResult = ((apiResult as Record<string, unknown>).topicTitle as string | undefined);
+                const rawResponse = (apiResult.rawResponse ?? {}) as Record<
+                  string,
+                  unknown
+                >;
+                const extractedMetrics = (apiResult.extractedMetrics ??
+                  {}) as Record<string, unknown>;
+                const topicFromResult = (apiResult as Record<string, unknown>)
+                  .topicTitle as string | undefined;
                 const pdfUrl = (apiResult.pdfUrl ?? null) as string | null;
 
-                derivedTopicTitle = topicFromResult || sessionStorage.getItem("selectedTopicTitle") || null;
+                derivedTopicTitle =
+                  topicFromResult ||
+                  sessionStorage.getItem("selectedTopicTitle") ||
+                  null;
                 derivedMethod = pdfUrl ? "upload" : "manual";
 
                 transformedResult = {
@@ -71,11 +104,11 @@ const EssayResultsPage = () => {
                   pdfUrl,
                   topicTitle: derivedTopicTitle ?? undefined,
                   sessionId,
-                  source: "submit"
+                  source: "submit",
                 } as Record<string, unknown>;
-                
+
                 console.log("Fresh submission result:", transformedResult);
-                
+
                 // Clear the pending submission data
                 sessionStorage.removeItem("pendingEssaySubmission");
                 sessionStorage.removeItem("essayResultSource");
@@ -92,20 +125,32 @@ const EssayResultsPage = () => {
             // This is history selection - use GET API
             // First, try to load from sessionStorage if it matches current session
             const storedResult = sessionStorage.getItem("essayResult");
-            
+
             if (storedResult) {
               try {
-                const parsedResult = JSON.parse(storedResult) as Record<string, unknown>;
-                const storedSessionId = (parsedResult?.sessionId as string) || null;
-                
+                const parsedResult = JSON.parse(storedResult) as Record<
+                  string,
+                  unknown
+                >;
+                const storedSessionId =
+                  (parsedResult?.sessionId as string) || null;
+
                 // Only use stored result if it matches current session
                 if (storedSessionId === sessionId) {
-                  const parsedPdfUrl = (parsedResult?.pdfUrl as string | null) ?? null;
+                  const parsedPdfUrl =
+                    (parsedResult?.pdfUrl as string | null) ?? null;
                   transformedResult = parsedResult;
-                  derivedTopicTitle = (parsedResult?.topicTitle as string | undefined) || sessionStorage.getItem("selectedTopicTitle");
-                  derivedMethod = (parsedResult?.essayMethod as "manual" | "upload") || (parsedPdfUrl ? "upload" : "manual");
-                  
-                  console.log("Loaded result from sessionStorage:", transformedResult);
+                  derivedTopicTitle =
+                    (parsedResult?.topicTitle as string | undefined) ||
+                    sessionStorage.getItem("selectedTopicTitle");
+                  derivedMethod =
+                    (parsedResult?.essayMethod as "manual" | "upload") ||
+                    (parsedPdfUrl ? "upload" : "manual");
+
+                  console.log(
+                    "Loaded result from sessionStorage:",
+                    transformedResult
+                  );
                 }
               } catch (parseError) {
                 console.error("Failed to parse stored result:", parseError);
@@ -116,30 +161,53 @@ const EssayResultsPage = () => {
             // Try GET API if we don't have stored data for this session
             if (!transformedResult && sessionId) {
               try {
-                console.log("Attempting to fetch essay result from history for sessionId:", sessionId);
+                console.log(
+                  "Attempting to fetch essay result from history for sessionId:",
+                  sessionId
+                );
                 const response = await essayAPI.getEssayResult(sessionId);
 
                 if (response.success && response.data) {
-                  const apiResult = response.data.result || response.data.essayResult;
+                  const apiResult =
+                    response.data.result || response.data.essayResult;
                   if (apiResult) {
-                    const rawResponse = (apiResult.rawResponse ?? {}) as Record<string, unknown>;
-                    const extractedMetrics = (apiResult.extractedMetrics ?? {}) as Record<string, unknown>;
-                    const topicFromResult = ((apiResult as Record<string, unknown>).topicTitle as string | undefined);
-                    const topicFromSession = response.data.session?.topic?.title;
-                    const topicFromRaw = typeof rawResponse.topic === "string" ? rawResponse.topic : undefined;
-                    const topicFromRawTitle = typeof rawResponse.topic_title === "string" ? rawResponse.topic_title : undefined;
+                    const rawResponse = (apiResult.rawResponse ?? {}) as Record<
+                      string,
+                      unknown
+                    >;
+                    const extractedMetrics = (apiResult.extractedMetrics ??
+                      {}) as Record<string, unknown>;
+                    const topicFromResult = (
+                      apiResult as Record<string, unknown>
+                    ).topicTitle as string | undefined;
+                    const topicFromSession =
+                      response.data.session?.topic?.title;
+                    const topicFromRaw =
+                      typeof rawResponse.topic === "string"
+                        ? rawResponse.topic
+                        : undefined;
+                    const topicFromRawTitle =
+                      typeof rawResponse.topic_title === "string"
+                        ? rawResponse.topic_title
+                        : undefined;
                     const pdfUrl = (apiResult.pdfUrl ?? null) as string | null;
 
                     derivedTopicTitle =
-                      topicFromResult || topicFromSession || topicFromRaw || topicFromRawTitle || sessionStorage.getItem("selectedTopicTitle") || null;
-                    
+                      topicFromResult ||
+                      topicFromSession ||
+                      topicFromRaw ||
+                      topicFromRawTitle ||
+                      sessionStorage.getItem("selectedTopicTitle") ||
+                      null;
+
                     console.log("Topic title sources:", {
                       topicFromResult,
                       topicFromSession,
                       topicFromRaw,
                       topicFromRawTitle,
-                      sessionStorage: sessionStorage.getItem("selectedTopicTitle"),
-                      final: derivedTopicTitle
+                      sessionStorage:
+                        sessionStorage.getItem("selectedTopicTitle"),
+                      final: derivedTopicTitle,
                     });
                     derivedMethod = pdfUrl ? "upload" : "manual";
 
@@ -150,30 +218,45 @@ const EssayResultsPage = () => {
                       pdfUrl,
                       topicTitle: derivedTopicTitle ?? undefined,
                       sessionId,
-                      source: "history"
+                      source: "history",
                     } as Record<string, unknown>;
-                    
-                    console.log("Loaded result from history API:", transformedResult);
+
+                    console.log(
+                      "Loaded result from history API:",
+                      transformedResult
+                    );
                   }
                 }
               } catch (apiError) {
-                console.error("Failed to fetch essay result from history API:", apiError);
+                console.error(
+                  "Failed to fetch essay result from history API:",
+                  apiError
+                );
 
                 if (apiError instanceof Error) {
                   const errorMessage = apiError.message;
-                  
+
                   // Handle specific error cases
                   if (errorMessage === "Session not yet evaluated") {
-                    setError("Your essay is still being evaluated by our AI. Please wait a moment and try again.");
+                    setError(
+                      "Your essay is still being evaluated by our AI. Please wait a moment and try again."
+                    );
                     return;
-                  } else if (errorMessage === "Your session has expired. Please log in again.") {
+                  } else if (
+                    errorMessage ===
+                    "Your session has expired. Please log in again."
+                  ) {
                     setError("Your session has expired. Please log in again.");
                     return;
-                  } else if (errorMessage === "The requested resource was not found.") {
-                    setError("This essay session could not be found. It may have been deleted or you may not have permission to view it.");
+                  } else if (
+                    errorMessage === "The requested resource was not found."
+                  ) {
+                    setError(
+                      "This essay session could not be found. It may have been deleted or you may not have permission to view it."
+                    );
                     return;
                   }
-                  
+
                   fallbackErrorMessage = errorMessage;
                 } else {
                   fallbackErrorMessage = "Failed to load essay results.";
@@ -183,10 +266,13 @@ const EssayResultsPage = () => {
           }
         }
 
-        
         if (transformedResult) {
-          const finalTopicTitle = derivedTopicTitle || sessionStorage.getItem("selectedTopicTitle") || null;
-          const finalMethod = derivedMethod || (transformedResult?.pdfUrl ? "upload" : "manual");
+          const finalTopicTitle =
+            derivedTopicTitle ||
+            sessionStorage.getItem("selectedTopicTitle") ||
+            null;
+          const finalMethod =
+            derivedMethod || (transformedResult?.pdfUrl ? "upload" : "manual");
 
           const finalResult = {
             ...transformedResult,
@@ -210,7 +296,10 @@ const EssayResultsPage = () => {
           setIsLoading(false);
         }
       } catch (err) {
-        console.error("An unexpected error occurred while loading essay result:", err);
+        console.error(
+          "An unexpected error occurred while loading essay result:",
+          err
+        );
         setError("An error occurred while loading your results.");
         setIsLoading(false);
       }
@@ -235,7 +324,7 @@ const EssayResultsPage = () => {
         console.log("Session storage changed:", {
           oldValue: event.detail.oldValue,
           newValue: newSessionId,
-          currentSessionId: currentSessionId
+          currentSessionId: currentSessionId,
         });
         if (newSessionId && newSessionId !== currentSessionId) {
           console.log("Setting new session ID:", newSessionId);
@@ -246,7 +335,10 @@ const EssayResultsPage = () => {
 
     // Add event listeners
     window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("sessionStorageChange", handleCustomStorageChange as EventListener);
+    window.addEventListener(
+      "sessionStorageChange",
+      handleCustomStorageChange as EventListener
+    );
 
     // Check on mount for initial session ID
     const initialSessionId = sessionStorage.getItem("essaySessionId");
@@ -256,7 +348,10 @@ const EssayResultsPage = () => {
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("sessionStorageChange", handleCustomStorageChange as EventListener);
+      window.removeEventListener(
+        "sessionStorageChange",
+        handleCustomStorageChange as EventListener
+      );
     };
   }, [currentSessionId]);
 
@@ -299,7 +394,9 @@ const EssayResultsPage = () => {
             {isLoading && (
               <div className="flex flex-col items-center justify-center py-20">
                 <Loader2 className="h-12 w-12 animate-spin text-[#1C6758]" />
-                <p className="mt-4 text-lg text-slate-600">Loading your essay results...</p>
+                <p className="mt-4 text-lg text-slate-600">
+                  Loading your essay results...
+                </p>
               </div>
             )}
 
@@ -307,7 +404,9 @@ const EssayResultsPage = () => {
             {error && !isLoading && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
                 <AlertCircle className="mx-auto h-12 w-12 text-red-600" />
-                <h3 className="mt-4 text-lg font-semibold text-red-900">Error Loading Results</h3>
+                <h3 className="mt-4 text-lg font-semibold text-red-900">
+                  Error Loading Results
+                </h3>
                 <p className="mt-2 text-sm text-red-700">{error}</p>
                 <Button
                   onClick={() => router.push("/essay-evaluation")}
@@ -319,413 +418,656 @@ const EssayResultsPage = () => {
             )}
 
             {/* Results Content */}
-            {!isLoading && !error && resultData && (() => {
-              const rawResponse = (resultData as Record<string, unknown>).rawResponse as Record<string, unknown> || {};
-              const extractedMetrics = (resultData as Record<string, unknown>).extractedMetrics as Record<string, unknown> || {};
-              
-              // Only use actual data from API, no fallbacks to static data
-              const topicTitle = (resultData as Record<string, unknown>).topicTitle as string | undefined;
-              const overallScore = (extractedMetrics.overall as number) || (rawResponse.overall_score as number) || null;
-              const grade = (extractedMetrics.grade as string) || (rawResponse.grade as string) || null;
-              const executiveSummary = (rawResponse.executive_summary as string) || null;
-              const strengths = (rawResponse.strengths_to_retain as string[]) || null;
-              const weaknesses = (rawResponse.weaknesses as string[]) || null;
-              const recommendations = (rawResponse.next_steps_recommendations as string[]) || null;
-              const coreMetrics = (rawResponse.core_evaluation_metrics as Record<string, unknown>) || null;
-              const languageMetrics = (rawResponse.language_accuracy_style as Record<string, unknown>) || null;
-              const detailedAnalysis = (rawResponse.detailed_analysis as Record<string, unknown>) || null;
-              const quickFixes = (rawResponse.quick_mechanical_fixes as Record<string, unknown>) || null;
-              const modelCorrections = (rawResponse.model_corrections_examples as Record<string, unknown>) || null;
+            {!isLoading &&
+              !error &&
+              resultData &&
+              (() => {
+                const rawResponse =
+                  ((resultData as Record<string, unknown>)
+                    .rawResponse as Record<string, unknown>) || {};
+                const extractedMetrics =
+                  ((resultData as Record<string, unknown>)
+                    .extractedMetrics as Record<string, unknown>) || {};
 
-              return (
-                <>
-            {/* Topic and Overall Score Header - Only show if we have real data */}
-            {(topicTitle || overallScore || grade) && (
-              <section className="rounded-3xl bg-[#135F4A] px-5 py-7 text-white shadow-sm sm:px-10 sm:py-8 lg:px-14 lg:py-10">
-                <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                  {topicTitle && (
-                    <div className="space-y-3 text-center md:text-left">
-                      <div className="inline-flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/80 md:justify-start">
-                        Topic
-                      </div>
-                      <h2 className="text-xl font-semibold sm:text-2xl lg:text-[28px]">
-                        {topicTitle}
-                      </h2>
-                    </div>
-                  )}
+                // Only use actual data from API, no fallbacks to static data
+                const topicTitle = (resultData as Record<string, unknown>)
+                  .topicTitle as string | undefined;
+                const overallScore =
+                  (extractedMetrics.overall as number) ||
+                  (rawResponse.overall_score as number) ||
+                  null;
+                const grade =
+                  (extractedMetrics.grade as string) ||
+                  (rawResponse.grade as string) ||
+                  null;
+                const executiveSummary =
+                  (rawResponse.executive_summary as string) || null;
+                const strengths =
+                  (rawResponse.strengths_to_retain as string[]) || null;
+                const weaknesses = (rawResponse.weaknesses as string[]) || null;
+                const recommendations =
+                  (rawResponse.next_steps_recommendations as string[]) || null;
+                const coreMetrics =
+                  (rawResponse.core_evaluation_metrics as Record<
+                    string,
+                    unknown
+                  >) || null;
+                const languageMetrics =
+                  (rawResponse.language_accuracy_style as Record<
+                    string,
+                    unknown
+                  >) || null;
+                const detailedAnalysis =
+                  (rawResponse.detailed_analysis as Record<string, unknown>) ||
+                  null;
+                const quickFixes =
+                  (rawResponse.quick_mechanical_fixes as Record<
+                    string,
+                    unknown
+                  >) || null;
+                const modelCorrections =
+                  (rawResponse.model_corrections_examples as Record<
+                    string,
+                    unknown
+                  >) || null;
 
-                  {(overallScore || grade) && (
-                    <div className="flex flex-col items-center gap-2 md:items-end">
-                      <span className="text-xs font-medium uppercase tracking-wide text-white/80">
-                        Overall Essay Score
-                      </span>
-                      {overallScore && (
-                        <div className="text-5xl font-bold leading-none sm:text-6xl lg:text-7xl">
-                          {overallScore}%
-                        </div>
-                      )}
-                      {grade && (
-                        <span className="rounded-full bg-[#FFC14E] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-black sm:px-6 sm:py-3">
-                          Grade: {grade}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </section>
-            )}
-
-            {/* Executive Summary - Only show if data exists */}
-            {executiveSummary && executiveSummary.trim() && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-4 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                  Executive Summary
-                </h2>
-                <p className="text-sm leading-relaxed text-slate-600 sm:text-base lg:text-[17px]">
-                  {executiveSummary}
-                </p>
-              </section>
-            )}
-
-            {/* Core Evaluation Metrics - Only show if data exists */}
-            {coreMetrics && Object.keys(coreMetrics).length > 0 && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                  Core Evaluation Metrics
-                </h2>
-                <div className="space-y-4">
-                  {Object.entries(coreMetrics)
-                    .filter(([key]) => !key.includes('_comment'))
-                    .map(([key, value]) => {
-                      const commentKey = `${key}_comment`;
-                      const comment = (coreMetrics as Record<string, unknown>)[commentKey] || '';
-                      const score = typeof value === 'number' ? value : 0;
-                      const title = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-                      
-                      return (
-                        <div
-                          key={key}
-                          className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-[#FAFAFA] px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"
-                        >
-                          <div className="flex items-start gap-4">
-                            <div className="space-y-1">
-                              <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
-                                {title}
-                              </h3>
-                              <p className="text-sm text-slate-500 sm:text-[15px]">
-                                {String(comment)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="inline-flex items-center justify-center rounded-2xl bg-[#E0ECFF] px-5 py-3 text-sm font-semibold text-black sm:text-base">
-                            {score}/100
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </section>
-            )}
-
-            {/* Language Accuracy & Style - Only show if data exists */}
-            {languageMetrics && Object.keys(languageMetrics).length > 0 && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                  Language Accuracy & Style
-                </h2>
-                <div className="space-y-6">
-                  {Object.entries(languageMetrics).map(([category, data]) => {
-                    const categoryTitle = category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                    const dataObj = data as Record<string, unknown>;
-                    const issuesCount = typeof dataObj?.issues_count === 'number' ? dataObj.issues_count : 0;
-                    const examples = Array.isArray(dataObj?.examples) ? dataObj.examples as Array<Record<string, unknown>> : [];
-                    
-                    return (
-                      <div key={category} className="rounded-2xl border border-slate-200 px-5 py-5 lg:px-7">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-base font-semibold text-slate-900">{categoryTitle}</h3>
-                          <span className={`inline-flex items-center rounded-lg px-3 py-1 text-sm font-semibold ${
-                            issuesCount === 0 
-                              ? 'bg-emerald-100 text-emerald-700' 
-                              : issuesCount <= 2 
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-red-100 text-red-700'
-                          }`}>
-                            {issuesCount} issues
-                          </span>
-                        </div>
-                        
-                        {examples.length > 0 ? (
-                          <div className="mt-4 space-y-2">
-                            {examples.map((example, index: number) => (
-                              <div
-                                key={index}
-                                className="flex flex-col gap-2 rounded-lg bg-[#F7F7F7] px-3 py-2 text-sm shadow-sm sm:flex-row sm:items-center sm:gap-3"
-                              >
-                                <span className="font-medium text-rose-600">
-                                  {String(example.before || '')}
-                                </span>
-                                <ArrowRight className="hidden h-3.5 w-3.5 text-slate-500 sm:block" />
-                                <span className="font-medium text-emerald-600">
-                                  {String(example.after || '')}
-                                </span>
+                return (
+                  <>
+                    {/* Topic and Overall Score Header - Only show if we have real data */}
+                    {(topicTitle || overallScore || grade) && (
+                      <section className="rounded-3xl bg-[#135F4A] px-5 py-7 text-white shadow-sm sm:px-10 sm:py-8 lg:px-14 lg:py-10">
+                        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                          {topicTitle && (
+                            <div className="space-y-3 text-center md:text-left">
+                              <div className="inline-flex items-center justify-center gap-2 text-sm font-semibold uppercase tracking-wide text-white/80 md:justify-start">
+                                Topic
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-600">
-                            Excellent! No issues found in this category.
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* Detailed Analysis - Only show if data exists */}
-            {detailedAnalysis && Object.keys(detailedAnalysis).length > 0 && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                  Detailed Analysis
-                </h2>
-                <div className="grid gap-5 lg:grid-cols-2">
-                  {Object.entries(detailedAnalysis).map(([key, data]) => {
-                    const dataObj = data as Record<string, unknown>;
-                    const title = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-                    const issues = Array.isArray(dataObj?.issues) ? dataObj.issues : [];
-                    const recommendations = Array.isArray(dataObj?.recommendations) ? dataObj.recommendations : [];
-                    
-                    return (
-                      <div key={key} className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
-                            {title}
-                          </h3>
-                        </div>
-                        <div className="space-y-2 py-3">
-                          {issues.length > 0 && (
-                            <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3">
-                              <p className="mb-1 flex items-center gap-2 text-sm font-semibold text-rose-600">
-                                <AlertCircle className="h-4 w-4" />
-                                Issue
-                              </p>
-                              <ul className="ml-6 space-y-1">
-                                {issues.map((issue: string, idx: number) => (
-                                  <li key={idx} className="text-xs leading-relaxed text-rose-700 sm:text-sm list-disc">
-                                    {issue}
-                                  </li>
-                                ))}
-                              </ul>
+                              <h2 className="text-xl font-semibold sm:text-2xl lg:text-[28px]">
+                                {topicTitle}
+                              </h2>
                             </div>
                           )}
-                          {recommendations.length > 0 && (
-                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-                              <p className="mb-1 flex items-center gap-2 text-xs font-semibold text-emerald-600 sm:text-sm">
-                                <Lightbulb className="h-4 w-4" />
-                                Recommendation
-                              </p>
-                              <ul className="ml-6 space-y-1">
-                                {recommendations.map((rec: string, idx: number) => (
-                                  <li key={idx} className="text-xs leading-relaxed text-emerald-700 sm:text-sm list-disc">
-                                    {rec}
-                                  </li>
-                                ))}
-                              </ul>
+
+                          {(overallScore || grade) && (
+                            <div className="flex flex-col items-center gap-2 md:items-end">
+                              <span className="text-xs font-medium uppercase tracking-wide text-white/80">
+                                Overall Essay Score
+                              </span>
+                              {overallScore && (
+                                <div className="text-5xl font-bold leading-none sm:text-6xl lg:text-7xl">
+                                  {overallScore}%
+                                </div>
+                              )}
+                              {grade && (
+                                <span className="rounded-full bg-[#FFC14E] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-black sm:px-6 sm:py-3">
+                                  Grade: {grade}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+                      </section>
+                    )}
 
-            {/* Quick Mechanical Fixes - Only show if data exists */}
-            {quickFixes && Object.keys(quickFixes).length > 0 && (() => {
-              const hasExamples = Object.values(quickFixes).some((data) => {
-                const dataObj = data as Record<string, unknown>;
-                const examples = Array.isArray(dataObj?.examples) ? dataObj.examples : [];
-                return examples.length > 0;
-              });
-              
-              return hasExamples ? (
-                <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                  <h2 className="mb-5 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                    Quick Mechanical Fixes
-                  </h2>
-                  <div className="space-y-6">
-                    {Object.entries(quickFixes)
-                      .map(([category, data]) => {
-                        const dataObj = data as Record<string, unknown>;
-                        const categoryTitle = category.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-                        const issuesCount = dataObj?.issues_count || 0;
-                        const examples = Array.isArray(dataObj?.examples) ? dataObj.examples : [];
-                        
-                        if (examples.length === 0) return null;
-                        
-                        return (
-                          <div key={category}>
-                            <h3 className="mb-3 text-base font-semibold text-slate-900">{categoryTitle} ({issuesCount as number} issues)</h3>
-                          <div className="space-y-3">
-                            {examples.map((fix: Record<string, unknown>, index: number) => (
-                              <div
-                                key={`${category}-fix-${index}`}
-                                className="flex items-start gap-3 rounded-2xl bg-[#FFF9E6] px-4 py-3 text-sm sm:text-base"
-                              >
-                                <AlertCircle className="mt-0.5 h-5 w-5 text-[#E6B800]" />
-                                <div className="flex-1">
-                                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                    <span className="text-rose-600 font-medium">{String(fix.before || '')}</span>
-                                    <ArrowRight className="h-4 w-4 text-slate-500" />
-                                    <span className="text-emerald-600 font-medium">{String(fix.after || '')}</span>
+                    {/* Executive Summary - Only show if data exists */}
+                    {executiveSummary && executiveSummary.trim() && (
+                      <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                        <h2 className="mb-4 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                          Executive Summary
+                        </h2>
+                        <p className="text-sm leading-relaxed text-slate-600 sm:text-base lg:text-[17px]">
+                          {executiveSummary}
+                        </p>
+                      </section>
+                    )}
+
+                    {/* Core Evaluation Metrics - Only show if data exists */}
+                    {coreMetrics && Object.keys(coreMetrics).length > 0 && (
+                      <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                        <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                          Core Evaluation Metrics
+                        </h2>
+                        <div className="space-y-4">
+                          {Object.entries(coreMetrics)
+                            .filter(([key]) => !key.includes("_comment"))
+                            .map(([key, value]) => {
+                              const commentKey = `${key}_comment`;
+                              const comment =
+                                (coreMetrics as Record<string, unknown>)[
+                                  commentKey
+                                ] || "";
+                              const score =
+                                typeof value === "number" ? value : 0;
+                              const title = key
+                                .replace(/_/g, " ")
+                                .replace(/\b\w/g, (l: string) =>
+                                  l.toUpperCase()
+                                );
+
+                              return (
+                                <div
+                                  key={key}
+                                  className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-[#FAFAFA] px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8"
+                                >
+                                  <div className="flex items-start gap-4">
+                                    <div className="space-y-1">
+                                      <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
+                                        {title}
+                                      </h3>
+                                      <p className="text-sm text-slate-500 sm:text-[15px]">
+                                        {String(comment)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="inline-flex items-center justify-center rounded-2xl bg-[#E0ECFF] px-5 py-3 text-sm font-semibold text-black sm:text-base">
+                                    {score}/100
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              );
+                            })}
                         </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              ) : null;
-            })()}
+                      </section>
+                    )}
 
-            {/* Model Corrections & Examples - Only show if data exists */}
-            {modelCorrections && Object.keys(modelCorrections).length > 0 && (() => {
-              const hasValidContent = Object.values(modelCorrections).some(value => 
-                typeof value === 'string' && value.trim().length > 0
-              );
-              
-              return hasValidContent ? (
-                <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                  <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                    Model Corrections & Examples
-                  </h2>
-                  <div className="space-y-6">
-                    {Object.entries(modelCorrections).map(([key, value], index) => {
-                      if (typeof value !== 'string' || !value.trim()) return null;
-                      const title = key.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
-                      
-                      return (
-                        <div key={key} className="space-y-3">
-                          <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
-                            {title}
-                          </h3>
-                          <div
-                            className={`rounded-2xl px-4 py-4 ${
-                              index === 0
-                                ? "bg-[#F0FDF4]"
-                                : index === 1
-                                  ? "bg-[#EFF6FF]"
-                                  : "bg-[#FAF5FF]"
-                            }`}
-                          >
-                            <p className="text-md leading-relaxed whitespace-pre-wrap">
-                              {value}
-                            </p>
+                    {/* Language Accuracy & Style - Only show if data exists */}
+                    {languageMetrics &&
+                      Object.keys(languageMetrics).length > 0 && (
+                        <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                          <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                            Language Accuracy & Style
+                          </h2>
+                          <div className="space-y-3">
+                            {Object.entries(languageMetrics).map(
+                              ([category, data]) => {
+                                const categoryTitle = category
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (l) => l.toUpperCase());
+                                const dataObj = data as Record<string, unknown>;
+                                const issuesCount =
+                                  typeof dataObj?.issues_count === "number"
+                                    ? dataObj.issues_count
+                                    : 0;
+                                const examples = Array.isArray(
+                                  dataObj?.examples
+                                )
+                                  ? (dataObj.examples as Array<
+                                      Record<string, unknown>
+                                    >)
+                                  : [];
+
+                                // Get score from extractedMetrics based on category
+                                const extractedMetrics = (resultData as Record<string, unknown>).extractedMetrics as Record<string, unknown> || {};
+                                let score: number | null = null;
+                                
+                                // Map API category names to extractedMetrics keys
+                                if (category === 'grammar_punctuation') {
+                                  const grammarScore = extractedMetrics.grammarScore as Record<string, unknown>;
+                                  score = typeof grammarScore?.percentScore === 'number' ? grammarScore.percentScore : null;
+                                } else if (category === 'tone_formality') {
+                                  const toneScore = extractedMetrics.toneScore as Record<string, unknown>;
+                                  score = typeof toneScore?.percentScore === 'number' ? toneScore.percentScore : null;
+                                } else if (category === 'sentence_clarity_structure') {
+                                  const sentenceScore = extractedMetrics.sentenceScore as Record<string, unknown>;
+                                  score = typeof sentenceScore?.percentScore === 'number' ? sentenceScore.percentScore : null;
+                                } else if (category === 'vocabulary_enhancement') {
+                                  const vocabScore = extractedMetrics.vocabScore as Record<string, unknown>;
+                                  score = typeof vocabScore?.percentScore === 'number' ? vocabScore.percentScore : null;
+                                }
+
+                                const isExpanded = expandedSections[`language-${category}`] || false;
+
+                                return (
+                                  <div
+                                    key={category}
+                                    className="border border-gray-200 rounded-lg overflow-hidden bg-white"
+                                  >
+                                    <div 
+                                      className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors duration-200 border-b border-gray-200"
+                                      onClick={() => toggleSection(`language-${category}`)}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <h3 className="text-base font-medium text-gray-900">
+                                          {categoryTitle}
+                                        </h3>
+                                        {score !== null && (
+                                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                            {score}%
+                                          </span>
+                                        )}
+                                        <span
+                                          className={`inline-flex items-center rounded-lg px-2 py-1 text-xs font-medium ${
+                                            issuesCount === 0
+                                              ? "bg-emerald-100 text-emerald-700"
+                                              : issuesCount <= 2
+                                                ? "bg-yellow-100 text-yellow-700"
+                                                : "bg-red-100 text-red-700"
+                                          }`}
+                                        >
+                                          {issuesCount} issues
+                                        </span>
+                                      </div>
+                                      {isExpanded ? (
+                                        <ChevronDown className="h-5 w-5 text-gray-500" />
+                                      ) : (
+                                        <ChevronRight className="h-5 w-5 text-gray-500" />
+                                      )}
+                                    </div>
+                                    {isExpanded && (
+                                      <div className="p-4 bg-white">
+                                        {examples.length > 0 ? (
+                                          <div className="space-y-3">
+                                            <h4 className="text-sm font-medium text-gray-900 mb-2">Examples:</h4>
+                                            {examples.map(
+                                              (example, index: number) => (
+                                                <div
+                                                  key={index}
+                                                  className="rounded-lg border border-gray-200 bg-gray-50 p-3"
+                                                >
+                                                  <div className="flex flex-col space-y-2">
+                                                    <div className="flex items-start gap-2">
+                                                      <span className="text-xs font-medium text-red-600 uppercase tracking-wide">Before:</span>
+                                                      <span className="text-sm text-red-700 leading-relaxed">
+                                                        {String(example.before || "")}
+                                                      </span>
+                                                    </div>
+                                                    <div className="flex items-start gap-2">
+                                                      <span className="text-xs font-medium text-green-600 uppercase tracking-wide">After:</span>
+                                                      <span className="text-sm text-green-700 leading-relaxed">
+                                                        {String(example.after || "")}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                                            <p className="text-sm font-medium text-emerald-700">
+                                              ✅ Excellent! No issues found in this category.
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                            )}
                           </div>
+                        </section>
+                      )}
+
+                    {/* Detailed Analysis - Only show if data exists */}
+                    {detailedAnalysis &&
+                      Object.keys(detailedAnalysis).length > 0 && (
+                        <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                          <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                            Detailed Analysis
+                          </h2>
+                          <div className="space-y-3">
+                            {Object.entries(detailedAnalysis).map(
+                              ([key, data]) => {
+                                const dataObj = data as Record<string, unknown>;
+                                const title = key
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (l: string) =>
+                                    l.toUpperCase()
+                                  );
+                                const issues = Array.isArray(dataObj?.issues)
+                                  ? dataObj.issues
+                                  : [];
+                                const recommendations = Array.isArray(
+                                  dataObj?.recommendations
+                                )
+                                  ? dataObj.recommendations
+                                  : [];
+
+                                const isExpanded = expandedSections[`detailed-${key}`] || false;
+
+                                return (
+                                  <div
+                                    key={key}
+                                    className="border border-gray-200 rounded-lg overflow-hidden bg-white"
+                                  >
+                                    <div 
+                                      className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors duration-200 border-b border-gray-200"
+                                      onClick={() => toggleSection(`detailed-${key}`)}
+                                    >
+                                      <h3 className="text-base font-medium text-gray-900">
+                                        {title}
+                                      </h3>
+                                      {isExpanded ? (
+                                        <ChevronDown className="h-5 w-5 text-gray-500" />
+                                      ) : (
+                                        <ChevronRight className="h-5 w-5 text-gray-500" />
+                                      )}
+                                    </div>
+                                    {isExpanded && (
+                                      <div className="p-4 bg-white">
+                                        <div className="space-y-4">
+                                          {issues.length > 0 && (
+                                            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
+                                              <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-rose-700">
+                                                <AlertCircle className="h-4 w-4" />
+                                                Issues
+                                              </p>
+                                              <ul className="space-y-1 text-sm text-rose-600">
+                                                {issues.map(
+                                                  (issue: string, idx: number) => (
+                                                    <li
+                                                      key={idx}
+                                                      className="leading-relaxed"
+                                                    >
+                                                      • {issue}
+                                                    </li>
+                                                  )
+                                                )}
+                                              </ul>
+                                            </div>
+                                          )}
+                                          {recommendations.length > 0 && (
+                                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                                              <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-700">
+                                                <Lightbulb className="h-4 w-4" />
+                                                Recommendations
+                                              </p>
+                                              <ul className="space-y-1 text-sm text-emerald-600">
+                                                {recommendations.map(
+                                                  (rec: string, idx: number) => (
+                                                    <li
+                                                      key={idx}
+                                                      className="leading-relaxed"
+                                                    >
+                                                      • {rec}
+                                                    </li>
+                                                  )
+                                                )}
+                                              </ul>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        </section>
+                      )}
+
+                    {/* Quick Mechanical Fixes - Only show if data exists */}
+                    {quickFixes &&
+                      Object.keys(quickFixes).length > 0 &&
+                      (() => {
+                        const hasExamples = Object.values(quickFixes).some(
+                          (data) => {
+                            const dataObj = data as Record<string, unknown>;
+                            const examples = Array.isArray(dataObj?.examples)
+                              ? dataObj.examples
+                              : [];
+                            return examples.length > 0;
+                          }
+                        );
+
+                        return hasExamples ? (
+                          <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                            <h2 className="mb-5 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                              Quick Mechanical Fixes
+                            </h2>
+                            <div className="space-y-3">
+                              {Object.entries(quickFixes).map(
+                                ([category, data]) => {
+                                  const dataObj = data as Record<
+                                    string,
+                                    unknown
+                                  >;
+                                  const categoryTitle = category
+                                    .replace(/_/g, " ")
+                                    .replace(/\b\w/g, (l: string) =>
+                                      l.toUpperCase()
+                                    );
+                                  const issuesCount =
+                                    dataObj?.issues_count || 0;
+                                  const examples = Array.isArray(
+                                    dataObj?.examples
+                                  )
+                                    ? dataObj.examples
+                                    : [];
+
+                                  if (examples.length === 0) return null;
+
+                                  const isExpanded = expandedSections[`quick-${category}`] || false;
+
+                                  return (
+                                    <div key={category} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                                      <div 
+                                        className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors duration-200 border-b border-gray-200"
+                                        onClick={() => toggleSection(`quick-${category}`)}
+                                      >
+                                        <h3 className="text-base font-medium text-gray-900">
+                                          {categoryTitle} ({issuesCount as number}{" "}
+                                          issues)
+                                        </h3>
+                                        {isExpanded ? (
+                                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                                        ) : (
+                                          <ChevronRight className="h-5 w-5 text-gray-500" />
+                                        )}
+                                      </div>
+                                      {isExpanded && (
+                                        <div className="p-4 bg-white">
+                                          <div className="space-y-3">
+                                            {examples.map(
+                                              (
+                                                fix: Record<string, unknown>,
+                                                index: number
+                                              ) => (
+                                                <div
+                                                  key={`${category}-fix-${index}`}
+                                                  className="flex items-start gap-3 rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm"
+                                                >
+                                                  <AlertCircle className="mt-0.5 h-4 w-4 text-yellow-600" />
+                                                  <div className="flex-1">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                                      <span className="font-medium text-slate-600">
+                                                        {String(fix.before || "")}
+                                                      </span>
+                                                      <ArrowRight className="h-5 w-5 " />
+                                                      <span className="font-medium text-slate-600">
+                                                        {String(fix.after || "")}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              )
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                              )}
+                            </div>
+                          </section>
+                        ) : null;
+                      })()}
+
+                    {/* Model Corrections & Examples - Only show if data exists */}
+                    {modelCorrections &&
+                      Object.keys(modelCorrections).length > 0 &&
+                      (() => {
+                        const hasValidContent = Object.values(
+                          modelCorrections
+                        ).some(
+                          (value) =>
+                            typeof value === "string" && value.trim().length > 0
+                        );
+
+                        return hasValidContent ? (
+                          <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                            <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                              Model Corrections & Examples
+                            </h2>
+                            <div className="space-y-3">
+                              {Object.entries(modelCorrections).map(
+                                ([key, value], index) => {
+                                  if (
+                                    typeof value !== "string" ||
+                                    !value.trim()
+                                  )
+                                    return null;
+                                  const title = key
+                                    .replace(/_/g, " ")
+                                    .replace(/\b\w/g, (l: string) =>
+                                      l.toUpperCase()
+                                    );
+
+                                  const isExpanded = expandedSections[`model-${key}`] || false;
+
+                                  return (
+                                    <div key={key} className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                                      <div 
+                                        className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors duration-200 border-b border-gray-200"
+                                        onClick={() => toggleSection(`model-${key}`)}
+                                      >
+                                        <h3 className="text-base font-medium text-gray-900">
+                                          {title}
+                                        </h3>
+                                        {isExpanded ? (
+                                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                                        ) : (
+                                          <ChevronRight className="h-5 w-5 text-gray-500" />
+                                        )}
+                                      </div>
+                                      {isExpanded && (
+                                        <div className="p-4 bg-white">
+                                          <div
+                                            className={`rounded-lg p-4 ${
+                                              index === 0
+                                                ? "bg-green-50 border border-green-200"
+                                                : index === 1
+                                                  ? "bg-blue-50 border border-blue-200"
+                                                  : "bg-purple-50 border border-purple-200"
+                                            }`}
+                                          >
+                                            <p className="text-sm leading-relaxed whitespace-pre-wrap text-gray-700">
+                                              {value}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                              )}
+                            </div>
+                          </section>
+                        ) : null;
+                      })()}
+
+                    {/* Strengths to Retain - Only show if data exists */}
+                    {strengths &&
+                      Array.isArray(strengths) &&
+                      strengths.length > 0 && (
+                        <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                          <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-emerald-600 sm:text-xl">
+                            <CheckCircle2 className="mr-2 inline h-5 w-5" />
+                            Strengths to Retain
+                          </h2>
+                          <div className="space-y-3">
+                            {strengths.map(
+                              (strength: string, index: number) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4"
+                                >
+                                  <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
+                                  <p className="text-sm text-emerald-800 sm:text-base">
+                                    {strength}
+                                  </p>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </section>
+                      )}
+
+                    {/* Areas for Improvement - Only show if data exists */}
+                    {weaknesses &&
+                      Array.isArray(weaknesses) &&
+                      weaknesses.length > 0 && (
+                        <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                          <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-red-600 sm:text-xl">
+                            <AlertCircle className="mr-2 inline h-5 w-5" />
+                            High-impact Weakness
+                          </h2>
+                          <div className="space-y-3">
+                            {weaknesses.map(
+                              (weakness: string, index: number) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start gap-3 rounded-lg border border-amber-100 bg-red-50 p-4"
+                                >
+                                  <AlertCircle className="mt-0.5 h-4 w-4 text-amber-600" />
+                                  <p className="text-sm text-amber-800 sm:text-base">
+                                    {weakness}
+                                  </p>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </section>
+                      )}
+
+                    {/* Next Steps Recommendations - Only show if data exists */}
+                    {recommendations &&
+                      Array.isArray(recommendations) &&
+                      recommendations.length > 0 && (
+                        <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                          <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                            <Lightbulb className="mr-2 inline h-5 w-5" />
+                            Next Steps & Recommendations
+                          </h2>
+                          <div className="space-y-3">
+                            {recommendations.map(
+                              (recommendation: string, index: number) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4"
+                                >
+                                  <Lightbulb className="mt-0.5 h-4 w-4 text-blue-600" />
+                                  <p className="text-sm text-blue-800 sm:text-base">
+                                    {recommendation}
+                                  </p>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </section>
+                      )}
+
+                    {/* Essay Content Review */}
+                    {resultData?.essayText && (
+                      <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
+                        <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
+                          Your Essay
+                        </h2>
+                        <div className="rounded-lg bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+                          <p className="whitespace-pre-wrap">
+                            {String(
+                              (resultData as Record<string, unknown>)
+                                ?.essayText || ""
+                            )}
+                          </p>
                         </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              ) : null;
-            })()}
-
-            {/* Strengths to Retain - Only show if data exists */}
-            {strengths && Array.isArray(strengths) && strengths.length > 0 && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-emerald-600 sm:text-xl">
-                  <CheckCircle2 className="mr-2 inline h-5 w-5" />
-                  Strengths to Retain
-                </h2>
-                <div className="space-y-3">
-                  {strengths.map((strength: string, index: number) => (
-                    <div key={index} className="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
-                      <p className="text-sm text-emerald-800 sm:text-base">{strength}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Areas for Improvement - Only show if data exists */}
-            {weaknesses && Array.isArray(weaknesses) && weaknesses.length > 0 && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-amber-600 sm:text-xl">
-                  <AlertCircle className="mr-2 inline h-5 w-5" />
-                  Areas for Improvement
-                </h2>
-                <div className="space-y-3">
-                  {weaknesses.map((weakness: string, index: number) => (
-                    <div key={index} className="flex items-start gap-3 rounded-lg border border-amber-100 bg-amber-50 p-4">
-                      <AlertCircle className="mt-0.5 h-4 w-4 text-amber-600" />
-                      <p className="text-sm text-amber-800 sm:text-base">{weakness}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Next Steps Recommendations - Only show if data exists */}
-            {recommendations && Array.isArray(recommendations) && recommendations.length > 0 && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                  <Lightbulb className="mr-2 inline h-5 w-5" />
-                  Next Steps & Recommendations
-                </h2>
-                <div className="space-y-3">
-                  {recommendations.map((recommendation: string, index: number) => (
-                    <div key={index} className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4">
-                      <Lightbulb className="mt-0.5 h-4 w-4 text-blue-600" />
-                      <p className="text-sm text-blue-800 sm:text-base">{recommendation}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Essay Content Review */}
-            {resultData?.essayText && (
-              <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-lg font-semibold text-[#1C6758] sm:text-xl">
-                  Your Essay
-                </h2>
-                <div className="rounded-lg bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
-                  <p className="whitespace-pre-wrap">{String((resultData as Record<string, unknown>)?.essayText || '')}</p>
-                </div>
-              </section>
-            )}
-
-            {/* <section className="rounded-3xl bg-white px-5 py-6 shadow-sm sm:px-8 lg:px-10">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-[#1C6758] mb-4">What&apos;s Next?</h3>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
-                    onClick={handleReattemptTopic}
-                    className="bg-[#1C6758] hover:bg-[#135F4A]"
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Try Another Essay
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleBackToHome}
-                    className="border-[#1C6758] text-[#1C6758] hover:bg-[#f0f7f5]"
-                  >
-                    Back to Dashboard
-                  </Button>
-                </div>
-              </div>
-            </section> */}
-                </>
-              );
-            })()}
+                      </section>
+                    )}
+                  </>
+                );
+              })()}
           </div>
         </div>
       </DashboardLayout>
