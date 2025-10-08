@@ -41,4 +41,6 @@ EXPOSE 3000
 
 ENV PORT 3000
 
+ENV NEXT_PUBLIC_API_URL https://api.aghaai.com
+
 CMD ["node", "server.js"]
