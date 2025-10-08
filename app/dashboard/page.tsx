@@ -30,7 +30,7 @@ import {
 const DashboardPage = () => {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [userName, setUserName] = useState("User");
-  const hasEssays = true; // Always show data from API
+  // Will be calculated dynamically later
   const [activeMetricTab, setActiveMetricTab] = useState<"language" | "core">(
     "core"
   );
@@ -53,15 +53,8 @@ const DashboardPage = () => {
   const progressData = useMemo(() => {
     // Check if userStats has trend data
     if (!userStats || !userStats.trend || userStats.trend.length === 0) {
-      // Fallback data
-      return [
-        { date: "20 May", score: 60 },
-        { date: "21 June", score: 80 },
-        { date: "25 July", score: 35 },
-        { date: "10 Sep", score: 70 },
-        { date: "10 Sep", score: 50 },
-        { date: "28 Sep", score: 85 },
-      ];
+      // Return empty array when no API data is available
+      return [];
     }
 
     // Transform API trend data for chart
@@ -90,6 +83,14 @@ const DashboardPage = () => {
       { name: "Unsuccessful", value: userStats.performanceOutcome.unsuccessful, color: "#ef4444" },
     ];
   }, [userStats]);
+
+  // Dynamic check for essays based on API data
+  const hasEssays = useMemo(() => {
+    return !isLoading && (
+      (languageOverview && languageOverview.length > 0) || 
+      (coreMatrixOverview && coreMatrixOverview.length > 0)
+    );
+  }, [isLoading, languageOverview, coreMatrixOverview]);
 
   const evaluationHistory = useMemo(() => {
     // If we have API data and it's being displayed, use it
@@ -135,63 +136,8 @@ const DashboardPage = () => {
       }));
     }
 
-    // Fallback sample data
-    return [
-      {
-        date: "20 Oct 2025",
-        topic: "Climate Change and Environment Change",
-        overallScore: 85,
-        coreMetrics: {
-          contentRelevance: 32,
-          organization: 64,
-          language: 46,
-          criticalThinking: 22,
-          outlineQuality: 46,
-        },
-        languageMetrics: {
-          grammar: 32,
-          tone: 64,
-          sentenceClarity: 46,
-          vocabulary: 22,
-        },
-      },
-      {
-        date: "10 Jun 2025",
-        topic: "The Impact of Social Media",
-        overallScore: 24,
-        coreMetrics: {
-          contentRelevance: 32,
-          organization: 64,
-          language: 46,
-          criticalThinking: 22,
-          outlineQuality: 46,
-        },
-        languageMetrics: {
-          grammar: 32,
-          tone: 64,
-          sentenceClarity: 46,
-          vocabulary: 22,
-        },
-      },
-      {
-        date: "05 Sep 2025",
-        topic: "Economic Inequality",
-        overallScore: 92,
-        coreMetrics: {
-          contentRelevance: 32,
-          organization: 64,
-          language: 46,
-          criticalThinking: 22,
-          outlineQuality: 46,
-        },
-        languageMetrics: {
-          grammar: 32,
-          tone: 64,
-          sentenceClarity: 46,
-          vocabulary: 22,
-        },
-      },
-    ];
+    // Return empty array when no API data is available
+    return [];
   }, [activeMetricTab, languageOverview, coreMatrixOverview]);
 
   // Use API data directly - no need to calculate since API provides the values
@@ -632,7 +578,7 @@ const DashboardPage = () => {
               )}
             </div>
 
-            {!isLoading && (evaluationHistory.length > 0 || languageOverview.length > 0 || coreMatrixOverview.length > 0) ? (
+            {!isLoading && hasEssays ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -805,14 +751,11 @@ const DashboardPage = () => {
                 <div className="text-center">
                   <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h4 className="text-gray-900 font-medium text-lg mb-2">
-                    No Essay Yet
+                    No Data Found
                   </h4>
                   <p className="text-gray-500 text-sm mb-6">
-                    Start writing your first essay to see detailed analytics
+                    Start writing your first essay to see detailed analytics and performance data
                   </p>
-                  <button className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-md font-medium transition-colors">
-                    Evaluate your Essay
-                  </button>
                 </div>
               </div>
             )}

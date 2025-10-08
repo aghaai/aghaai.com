@@ -10,16 +10,19 @@ import {
   CheckCircle2,
   AlertCircle,
   Lightbulb,
-  Loader2,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { essayAPI } from "@/lib/api/essay";
+import { useUserInfo } from "@/components/contexts/UserInfoContext";
+import EssayResultsSkeleton from "@/components/EssayResultsSkeleton";
+import { AxiosError } from "axios";
 
 const EssayResultsPage = () => {
   const router = useRouter();
+  const { refreshUserInfo } = useUserInfo();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [resultData, setResultData] = useState<Record<string, unknown> | null>(
@@ -77,6 +80,28 @@ const EssayResultsPage = () => {
                 submissionPayload
               );
 
+              // Validate payload before submission to catch issues early
+              if (!submissionPayload || typeof submissionPayload !== 'object') {
+                throw new Error("Invalid submission payload structure");
+              }
+
+              if (!submissionPayload.essayText || typeof submissionPayload.essayText !== 'string') {
+                throw new Error("Missing or invalid essayText in payload");
+              }
+
+              if (!submissionPayload.question || typeof submissionPayload.question !== 'string') {
+                throw new Error("Missing or invalid question in payload");
+              }
+
+              if (submissionPayload.essayText.trim().length < 10) {
+                throw new Error("Essay text is too short for evaluation");
+              }
+
+              console.log("✅ Payload validation passed");
+              console.log("📋 Session ID:", sessionId);
+              console.log("📝 Essay length:", submissionPayload.essayText.length);
+              console.log("❓ Question:", submissionPayload.question);
+
               const response = await essayAPI.submitEssay(submissionPayload);
 
               if (response.success && response.data?.result) {
@@ -109,13 +134,45 @@ const EssayResultsPage = () => {
 
                 console.log("Fresh submission result:", transformedResult);
 
+                // Refresh user info to update token count after successful submission
+                refreshUserInfo({ silent: true });
+
                 // Clear the pending submission data
                 sessionStorage.removeItem("pendingEssaySubmission");
                 sessionStorage.removeItem("essayResultSource");
               }
             } catch (submitError) {
-              console.error("Failed to submit essay:", submitError);
-              if (submitError instanceof Error) {
+              console.error("❌ Failed to submit essay:", submitError);
+              
+              // Enhanced error analysis for debugging
+              if (submitError && typeof submitError === 'object' && 'response' in submitError) {
+                const axiosError = submitError as AxiosError;
+                console.error("🔍 API Error Analysis:", {
+                  status: axiosError.response?.status,
+                  statusText: axiosError.response?.statusText,
+                  data: axiosError.response?.data,
+                  url: axiosError.config?.url,
+                  method: axiosError.config?.method,
+                  payload: axiosError.config?.data
+                });
+                
+                const responseData = axiosError.response?.data as { message?: string } | undefined;
+                const status = axiosError.response?.status;
+                
+                if (status === 400) {
+                  const errorMessage = responseData?.message || 'Invalid request data';
+                  console.error("🚨 400 Bad Request Details:", errorMessage);
+                  fallbackErrorMessage = `Submission failed: ${errorMessage}`;
+                } else if (status === 401) {
+                  fallbackErrorMessage = "Authentication failed. Please log in again.";
+                } else if (status === 403) {
+                  fallbackErrorMessage = "Access denied. Check if you have sufficient tokens.";
+                } else if (status && status >= 500) {
+                  fallbackErrorMessage = "Server error occurred. Please try again later.";
+                } else {
+                  fallbackErrorMessage = responseData?.message || axiosError.message || "Network error occurred.";
+                }
+              } else if (submitError instanceof Error) {
                 fallbackErrorMessage = submitError.message;
               } else {
                 fallbackErrorMessage = "Failed to submit essay for evaluation.";
@@ -306,7 +363,7 @@ const EssayResultsPage = () => {
     };
 
     loadEssayResult();
-  }, [router, currentSessionId]);
+  }, [router, currentSessionId, refreshUserInfo]);
 
   // Listen for storage events to handle when history items are clicked
   useEffect(() => {
@@ -363,6 +420,11 @@ const EssayResultsPage = () => {
   //   router.push("/essay-test");
   // };
 
+  // Show skeleton loader while loading
+  if (isLoading) {
+    return <EssayResultsSkeleton />;
+  }
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -390,15 +452,7 @@ const EssayResultsPage = () => {
               </div> */}
             </div>
 
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="h-12 w-12 animate-spin text-[#1C6758]" />
-                <p className="mt-4 text-lg text-slate-600">
-                  Loading your essay results...
-                </p>
-              </div>
-            )}
+
 
             {/* Error State */}
             {error && !isLoading && (

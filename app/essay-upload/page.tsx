@@ -20,8 +20,6 @@ import {
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTestNavigation } from "@/components/contexts/TestNavigationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-// Essay API is now called from results page
-// import { essayAPI } from "@/lib/api/essay";
 import {
   Dialog,
   DialogContent,
@@ -32,10 +30,13 @@ import {
 } from "@/components/ui/dialog";
 import { isAxiosError } from "axios";
 import { essayTimer } from "@/lib/utils/essayTimer";
+import AIEvaluationLoader from "@/components/AIEvaluationLoader";
+import { useUserInfo } from "@/components/contexts/UserInfoContext";
 
 const EssayUploadPage = () => {
   const router = useRouter();
   const { setTestActive } = useTestNavigation();
+  const { refreshUserInfo } = useUserInfo();
   
   // Add 15 extra minutes on first load
   useEffect(() => {
@@ -56,6 +57,7 @@ const EssayUploadPage = () => {
   const [dialogType, setDialogType] = useState<"success" | "error">("success");
   const [dialogTitle, setDialogTitle] = useState("Essay Submission");
   const [dialogDescription, setDialogDescription] = useState("");
+  const [showAILoader, setShowAILoader] = useState(false);
 
   // Get selected topic from session storage and validate session
   useEffect(() => {
@@ -271,23 +273,36 @@ const EssayUploadPage = () => {
           "No active session found. Please start a new essay test."
         );
         setIsSubmitting(false);
-        setTimeout(() => {
-          router.push("/essay-evaluation");
-        }, 2000);
         return;
       }
       // Get topic title for question
       const topicTitle =
         sessionStorage.getItem("selectedTopicTitle") || selectedTopic;
 
+      // Additional validation
+      if (!topicTitle || topicTitle.trim().length === 0) {
+        setSubmitError("No topic selected. Please start a new essay test.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!uploadedFile.name || uploadedFile.name.trim().length === 0) {
+        setSubmitError("Invalid file. Please upload a valid PDF file.");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Prepare submission payload
       // Note: The current API expects essayText, but for PDF upload we would typically
       // need a different endpoint or the backend needs to handle file extraction.
       // For now, we'll submit a placeholder indicating it's a PDF submission.
       const submissionPayload = {
-        essayText: `[PDF Upload: ${uploadedFile.name}]`,
-        question: topicTitle,
+        essayText: `[PDF Upload: ${uploadedFile.name.trim()}]`,
+        question: topicTitle.trim(),
       };
+
+      console.log("PDF upload submission payload:", submissionPayload);
+      console.log("Session ID:", sessionId);
 
       // Store submission data and set source flag for results page
       sessionStorage.setItem("pendingEssaySubmission", JSON.stringify(submissionPayload));
@@ -303,19 +318,20 @@ const EssayUploadPage = () => {
       // Clear unrelated session data
       sessionStorage.removeItem("selectedTopic");
 
-      setDialogType("success");
-        setDialogTitle("Essay Submitted Successfully");
-        setDialogDescription(
-          "Your essay has been evaluated successfully. Redirecting to results..."
-        );
-        setDialogOpen(true);
-        setSubmitError(null);
+      setSubmitError(null);
+      setIsSubmitting(false);
 
-        // Auto redirect to results page after 2 seconds
-        setTimeout(() => {
-          setDialogOpen(false);
-          router.push("/essay-results");
-        }, 2000);
+      // Refresh user info to update token count after submission
+      refreshUserInfo({ silent: true });
+
+      // Show AI evaluation loader
+      setShowAILoader(true);
+
+      // Redirect to results page after a short delay to show the loader
+      setTimeout(() => {
+        setShowAILoader(false);
+        router.push("/essay-results");
+      }, 1500);
     } catch (err) {
       console.error("Failed to submit essay:", err);
       const message = isAxiosError(err)
@@ -612,6 +628,9 @@ const EssayUploadPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* AI Evaluation Loader */}
+        <AIEvaluationLoader isVisible={showAILoader} />
       </DashboardLayout>
     </ProtectedRoute>
   );

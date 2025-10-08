@@ -21,8 +21,6 @@ import {
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTestNavigation } from "@/components/contexts/TestNavigationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-// Essay API is now called from results page
-// import { essayAPI } from "@/lib/api/essay";
 import {
   Dialog,
   DialogContent,
@@ -33,10 +31,13 @@ import {
 } from "@/components/ui/dialog";
 import { isAxiosError } from "axios";
 import { essayTimer } from "@/lib/utils/essayTimer";
+import AIEvaluationLoader from "@/components/AIEvaluationLoader";
+import { useUserInfo } from "@/components/contexts/UserInfoContext";
 
 const EssayWritingPage = () => {
   const router = useRouter();
   const { setTestActive } = useTestNavigation();
+  const { refreshUserInfo } = useUserInfo();
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [essayOutline, setEssayOutline] = useState("");
   const [essayContent, setEssayContent] = useState("");
@@ -55,6 +56,7 @@ const EssayWritingPage = () => {
   const [dialogType, setDialogType] = useState<"success" | "error">("success");
   const [dialogTitle, setDialogTitle] = useState("Essay Submission");
   const [dialogDescription, setDialogDescription] = useState("");
+  const [showAILoader, setShowAILoader] = useState(false);
 
   // Get selected topic from session storage and validate session
   useEffect(() => {
@@ -63,15 +65,6 @@ const EssayWritingPage = () => {
       setSelectedTopic(topicTitle);
     }
 
-    // Check if session exists on page load
-    const sessionId = sessionStorage.getItem("essaySessionId");
-    if (!sessionId) {
-      console.warn("No active session found. Redirecting to essay evaluation.");
-      router.push("/essay-evaluation");
-      return;
-    }
-    // Only check mode for NEW active sessions (when coming from essay-test)
-    // Don't check mode when viewing historical results
     const essayMethod = sessionStorage.getItem("essayMethod");
     const isNewSession = sessionStorage.getItem("selectedTopic"); // Only exists for new sessions
     
@@ -100,7 +93,6 @@ const EssayWritingPage = () => {
       if (hasResult) {
         router.push("/essay-results");
       } else {
-        // If no result yet, try to submit or redirect to evaluation
         router.push("/essay-evaluation");
       }
     };
@@ -216,18 +208,26 @@ const EssayWritingPage = () => {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      // Check if session exists
+      // Check if session exists and is valid
       const sessionId = sessionStorage.getItem("essaySessionId");
       if (!sessionId) {
         setSubmitError(
           "No active session found. Please start a new essay test."
         );
         setIsSubmitting(false);
-        setTimeout(() => {
-          router.push("/essay-evaluation");
-        }, 2000);
         return;
       }
+
+      // Validate session ID format (should be a valid string)
+      if (sessionId.trim().length === 0) {
+        setSubmitError(
+          "Invalid session ID. Please start a new essay test."
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("🎯 Session validation passed, ID:", sessionId);
 
       // Get essay content
       const content = editorRef.current?.innerText || "";
@@ -248,17 +248,51 @@ const EssayWritingPage = () => {
       const topicTitle =
         sessionStorage.getItem("selectedTopicTitle") || selectedTopic;
 
+      // Additional validation
+      if (!topicTitle || topicTitle.trim().length === 0) {
+        setSubmitError("No topic selected. Please start a new essay test.");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Prepare submission payload
       const submissionPayload = {
-        essayText: content,
-        question: topicTitle,
+        essayText: content.trim(),
+        question: topicTitle.trim(),
       };
 
+      console.log("📝 Essay submission payload:", submissionPayload);
+      console.log("🔑 Session ID:", sessionId);
+      console.log("📊 Word count:", wordCount);
+      console.log("📏 Essay length:", content.trim().length);
+      
+      // Additional data validation
+      if (submissionPayload.essayText.length === 0) {
+        setSubmitError("Essay content cannot be empty.");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Store submission data and set source flag for results page
-      sessionStorage.setItem("pendingEssaySubmission", JSON.stringify(submissionPayload));
-      sessionStorage.setItem("essayResultSource", "submit");
-      sessionStorage.setItem("selectedTopicTitle", topicTitle);
-      sessionStorage.setItem("essayMethod", "manual");
+      try {
+        const payloadJson = JSON.stringify(submissionPayload);
+        sessionStorage.setItem("pendingEssaySubmission", payloadJson);
+        sessionStorage.setItem("essayResultSource", "submit");
+        sessionStorage.setItem("selectedTopicTitle", topicTitle);
+        sessionStorage.setItem("essayMethod", "manual");
+        
+        // Verify storage worked
+        const storedPayload = sessionStorage.getItem("pendingEssaySubmission");
+        if (!storedPayload) {
+          throw new Error("Failed to store submission data");
+        }
+        console.log("✅ Submission data stored successfully");
+      } catch (storageError) {
+        console.error("❌ Failed to store submission data:", storageError);
+        setSubmitError("Failed to prepare submission. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
 
       setTestActive(false); // Deactivate test to allow navigation
       
@@ -268,19 +302,21 @@ const EssayWritingPage = () => {
       // Clear unrelated session data
       sessionStorage.removeItem("selectedTopic");
 
-      setDialogType("success");
-      setDialogTitle("Essay Submitted Successfully");
-      setDialogDescription(
-        "Your essay is being evaluated. Redirecting to results..."
-      );
-      setDialogOpen(true);
-      setSubmitError(null);
 
-      // Auto redirect to results page after 2 seconds
+      setSubmitError(null);
+      setIsSubmitting(false);
+
+      // Refresh user info to update token count after submission
+      refreshUserInfo({ silent: true });
+
+      // Show AI evaluation loader
+      setShowAILoader(true);
+
+      // Redirect to results page after a short delay to show the loader
       setTimeout(() => {
-        setDialogOpen(false);
+        setShowAILoader(false);
         router.push("/essay-results");
-      }, 2000);
+      }, 1500);
     } catch (err) {
       console.error("Failed to submit essay:", err);
       const message = isAxiosError(err)
@@ -780,6 +816,9 @@ const EssayWritingPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* AI Evaluation Loader */}
+        <AIEvaluationLoader isVisible={showAILoader} />
 
         <style jsx>{`
           [contenteditable]:empty:before {
