@@ -26,6 +26,7 @@ import { essayTimer } from "@/lib/utils/essayTimer";
 import { useUserInfo } from "@/components/contexts/UserInfoContext";
 import TestWarningDialog from "@/components/dialogs/TestWarningDialog";
 import { useNavigationBlock } from "@/hooks/useNavigationBlock";
+import AIEvaluationLoader from "@/components/AIEvaluationLoader";
 
 const EssayUploadPage = () => {
   const router = useRouter();
@@ -46,6 +47,7 @@ const EssayUploadPage = () => {
   const [selectedTopic, setSelectedTopic] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<"success" | "error">("success");
   const [dialogTitle, setDialogTitle] = useState("Essay Submission");
@@ -207,11 +209,11 @@ const EssayUploadPage = () => {
       const isPDF = file.type === "application/pdf" && fileName.endsWith(".pdf");
 
       if (isPDF) {
-        // Check file size (max 10MB)
-        if (file.size <= 10 * 1024 * 1024) {
+        // Check file size (max 5MB)
+        if (file.size <= 5 * 1024 * 1024) {
           setUploadedFile(file);
         } else {
-          alert("File size must be less than 10MB.");
+          alert("File size must be less than 5MB.");
           // Reset file input
           if (fileInputRef.current) {
             fileInputRef.current.value = "";
@@ -258,11 +260,11 @@ const EssayUploadPage = () => {
       const isPDF = file.type === "application/pdf" && fileName.endsWith(".pdf");
 
       if (isPDF) {
-        // Check file size (max 10MB)
-        if (file.size <= 10 * 1024 * 1024) {
+        // Check file size (max 5MB)
+        if (file.size <= 5 * 1024 * 1024) {
           setUploadedFile(file);
         } else {
-          alert("File size must be less than 10MB.");
+          alert("File size must be less than 5MB.");
         }
       } else {
         alert("Please upload only PDF files. Other formats like DOC, DOCX are not supported.");
@@ -289,6 +291,7 @@ const EssayUploadPage = () => {
     }
 
     try {
+      setIsSubmitting(true);
       setSubmitError(null);
 
       // Check if session exists and is valid
@@ -297,6 +300,7 @@ const EssayUploadPage = () => {
         setSubmitError(
           "No active session found. Please start a new essay test."
         );
+        setIsSubmitting(false);
         return;
       }
 
@@ -305,6 +309,7 @@ const EssayUploadPage = () => {
         setSubmitError(
           "Invalid session ID. Please start a new essay test."
         );
+        setIsSubmitting(false);
         return;
       }
 
@@ -317,68 +322,68 @@ const EssayUploadPage = () => {
       // Additional validation
       if (!topicTitle || topicTitle.trim().length === 0) {
         setSubmitError("No topic selected. Please start a new essay test.");
+        setIsSubmitting(false);
         return;
       }
 
       if (!uploadedFile.name || uploadedFile.name.trim().length === 0) {
         setSubmitError("Invalid file. Please upload a valid PDF file.");
+        setIsSubmitting(false);
         return;
       }
 
       // Validate file type
       if (uploadedFile.type !== "application/pdf") {
         setSubmitError("Please upload a valid PDF file.");
+        setIsSubmitting(false);
         return;
       }
 
-      // Convert file to base64 so we can store it in sessionStorage
-      const reader = new FileReader();
-      const fileBase64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(uploadedFile);
-      });
+      // Validate file size (max 5MB)
+      if (uploadedFile.size > 5 * 1024 * 1024) {
+        setSubmitError("File size must be less than 5MB. Please upload a smaller file.");
+        setIsSubmitting(false);
+        return;
+      }
 
-      const fileBase64 = await fileBase64Promise;
-
-      // Prepare submission payload (matching essay-writing structure)
-      const submissionPayload = {
-        fileData: fileBase64,
+      console.log("📤 PDF upload submission:", {
         fileName: uploadedFile.name,
-        fileType: uploadedFile.type,
         fileSize: uploadedFile.size,
-        question: topicTitle.trim(),
-      };
-
-      console.log("📝 Essay submission payload:", {
-        fileName: submissionPayload.fileName,
-        fileSize: submissionPayload.fileSize,
-        fileType: submissionPayload.fileType,
-        question: submissionPayload.question,
+        fileType: uploadedFile.type,
+        sessionId: sessionId,
       });
-      console.log("🔑 Session ID:", sessionId);
 
-      // Store submission data and set source flag for results page (EXACT same as essay-writing)
-      try {
-        const payloadJson = JSON.stringify(submissionPayload);
-        sessionStorage.setItem("pendingEssaySubmission", payloadJson);
-        sessionStorage.setItem("essayResultSource", "submit"); // SAME as essay-writing
+      // Import essayAPI to submit the file
+      const { essayAPI } = await import("@/lib/api/essay");
+      
+      console.log("🚀 Submitting file to API...");
+
+      // Prepare submission payload with file
+      const submissionPayload = {
+        file: uploadedFile,
+        sessionId: sessionId,
+      };
+      
+      // Submit the file and wait for response
+      const response = await essayAPI.submitEssay(submissionPayload);
+      
+      console.log("✅ API Response:", response);
+      
+      if (response.success && response.data?.result) {
+        // Store result info for results page
+        const resultInfo = {
+          result: response.data.result,
+          topicTitle: topicTitle.trim(),
+          method: "upload",
+          sessionId: sessionId,
+        };
+        sessionStorage.setItem("essayResult", JSON.stringify(resultInfo));
         sessionStorage.setItem("selectedTopicTitle", topicTitle);
         sessionStorage.setItem("essayMethod", "upload");
+        // Mark as completed since we already have the result
+        sessionStorage.setItem("essayResultSource", "completed");
         
-        // Verify storage worked
-        const storedPayload = sessionStorage.getItem("pendingEssaySubmission");
-        if (!storedPayload) {
-          throw new Error("Failed to store submission data");
-        }
-        console.log("✅ Submission data stored successfully");
-      } catch (storageError) {
-        console.error("❌ Failed to store submission data:", storageError);
-        setSubmitError("Failed to prepare submission. Please try again.");
-        return;
+        console.log("✅ Result stored in sessionStorage with source: completed");
       }
 
       setTestActive(false); // Deactivate test to allow navigation
@@ -389,14 +394,16 @@ const EssayUploadPage = () => {
 
       // Clear unrelated session data
       sessionStorage.removeItem("selectedTopic");
+      sessionStorage.removeItem("pendingEssaySubmission");
       sessionStorage.removeItem("essayTestStarted");
 
       setSubmitError(null);
+      setIsSubmitting(false);
 
       // Refresh user info to update token count after submission
       refreshUserInfo({ silent: true });
 
-      // Redirect to results page immediately - skeleton loader will show there (EXACT same as essay-writing)
+      // Redirect to results page - result is already loaded
       router.push("/essay-results");
     } catch (err) {
       console.error("Failed to submit essay:", err);
@@ -534,7 +541,7 @@ const EssayUploadPage = () => {
                     <div className="text-[10px] sm:text-xs text-gray-500">
                       Supported formats: PDF only
                       <br />
-                      (Max 10MB per file)
+                      (Max 5MB per file)
                     </div>
                   </div>
                 ) : (
@@ -612,14 +619,17 @@ const EssayUploadPage = () => {
           <div className="flex justify-end pt-2">
             <Button
               onClick={handleSubmitEssay}
-              disabled={!uploadedFile}
+              disabled={!uploadedFile || isSubmitting}
               className="bg-[#1F6B63] hover:bg-[#155a4d] text-white px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 inline-flex items-center gap-2 sm:gap-2.5 text-sm sm:text-base font-semibold rounded-lg shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
             >
               <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              Submit Essay
+              {isSubmitting ? "Submitting..." : "Submit Essay"}
             </Button>
           </div>
         </div>
+
+        {/* AI Evaluation Loader Overlay */}
+        <AIEvaluationLoader isVisible={isSubmitting} />
 
         <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogContent onClose={() => handleDialogOpenChange(false)}>
