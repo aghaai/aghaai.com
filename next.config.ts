@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
     optimizeCss: true,
   },
   env: {
-    // NEXT_PUBLIC_API_URL: "https://api.aghaai.com",
-    NEXT_PUBLIC_API_URL: "http://localhost:5001",
+    NEXT_PUBLIC_API_URL: "https://api.aghaai.com",
+    // NEXT_PUBLIC_API_URL: "http://localhost:5001",
     EMAIL_USER: "admin@aghaai.com",
     EMAIL_PASS: "xfrq zfmk dugp ixix",
   },
