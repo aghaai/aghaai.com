@@ -19,6 +19,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { essayHistoryAPI, type EssayHistoryItem } from "@/lib/api/essay";
+import Link from "next/link";
 
 // Context for sidebar state
 interface SidebarContextType {
@@ -161,6 +162,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className="flex flex-col h-full">
             {/* Mobile Sidebar Header */}
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <Link href="/dashboard">
+            
               <Image
                 src="/logo.png"
                 alt="Aghaai Logo"
@@ -168,6 +171,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 height={40}
                 className="w-auto h-10"
               />
+              </Link>
               <button
                 onClick={() => setIsMobileOpen(false)}
                 className="p-2 rounded-md hover:bg-gray-100"
@@ -329,6 +333,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {/* Logo */}
           <div className="p-6 flex items-center justify-between">
             {!isCollapsed && (
+          <Link href="/dashboard">
+
               <Image
                 src="/logo.png"
                 alt="Aghaai Logo"
@@ -336,6 +342,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 height={100}
                 className="w-auto h-11"
               />
+              </Link>
             )}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}

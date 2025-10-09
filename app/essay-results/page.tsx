@@ -83,15 +83,18 @@ const EssayResultsPage = () => {
                 
                 console.log("Loaded completed file upload result:", transformedResult);
                 
-                // Clear the completed flag
-                sessionStorage.removeItem("essayResultSource");
+                // Don't remove the flag yet - it will be removed after data is set
               } catch (parseError) {
                 console.error("Failed to parse completed result:", parseError);
                 fallbackErrorMessage = "Failed to load essay results.";
               }
+            } else {
+              // No stored result found despite completed flag
+              console.warn("essayResultSource is 'completed' but no essayResult found in storage");
+              fallbackErrorMessage = "Essay result data is missing. Please try submitting again.";
             }
           } else if (resultSource === "submit" && submissionData) {
-            // This is a fresh text submission - use POST API
+            // This is a fresh submission (text OR file) - use POST API
             try {
               const submissionPayload = JSON.parse(submissionData);
               console.log(
@@ -104,67 +107,146 @@ const EssayResultsPage = () => {
                 throw new Error("Invalid submission payload structure");
               }
 
-              if (!submissionPayload.essayText || typeof submissionPayload.essayText !== 'string') {
-                throw new Error("Missing or invalid essayText in payload");
-              }
+              // Check if this is a text essay or file upload
+              const isFileUpload = 'fileData' in submissionPayload;
 
-              if (!submissionPayload.question || typeof submissionPayload.question !== 'string') {
-                throw new Error("Missing or invalid question in payload");
-              }
+              if (isFileUpload) {
+                // File upload validation
+                if (!submissionPayload.fileData || typeof submissionPayload.fileData !== 'string') {
+                  throw new Error("Missing or invalid file data in payload");
+                }
 
-              if (submissionPayload.essayText.trim().length < 10) {
-                throw new Error("Essay text is too short for evaluation");
-              }
+                if (!submissionPayload.question || typeof submissionPayload.question !== 'string') {
+                  throw new Error("Missing or invalid question in payload");
+                }
 
-              console.log("✅ Payload validation passed");
-              console.log("📋 Session ID:", sessionId);
-              console.log("📝 Essay length:", submissionPayload.essayText.length);
-              console.log("❓ Question:", submissionPayload.question);
+                console.log("✅ File upload payload validation passed");
+                console.log("📋 Session ID:", sessionId);
+                console.log("📄 File name:", submissionPayload.fileName);
+                console.log("📏 File size:", submissionPayload.fileSize);
+                console.log("❓ Question:", submissionPayload.question);
 
-              // Add sessionId to the payload
-              const payloadWithSession = {
-                ...submissionPayload,
-                sessionId: sessionId,
-              };
+                // Convert base64 back to File object
+                const base64Data = submissionPayload.fileData.split(',')[1];
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const file = new File([byteArray], submissionPayload.fileName, {
+                  type: submissionPayload.fileType,
+                });
 
-              const response = await essayAPI.submitEssay(payloadWithSession);
+                // Prepare file submission payload
+                const payloadWithSession = {
+                  file: file,
+                  sessionId: sessionId,
+                };
 
-              if (response.success && response.data?.result) {
-                const apiResult = response.data.result;
-                const rawResponse = (apiResult.rawResponse ?? {}) as Record<
-                  string,
-                  unknown
-                >;
-                const extractedMetrics = (apiResult.extractedMetrics ??
-                  {}) as Record<string, unknown>;
-                const topicFromResult = (apiResult as Record<string, unknown>)
-                  .topicTitle as string | undefined;
-                const pdfUrl = (apiResult.pdfUrl ?? null) as string | null;
+                const response = await essayAPI.submitEssay(payloadWithSession);
 
-                derivedTopicTitle =
-                  topicFromResult ||
-                  sessionStorage.getItem("selectedTopicTitle") ||
-                  null;
-                derivedMethod = pdfUrl ? "upload" : "manual";
+                if (response.success && response.data?.result) {
+                  const apiResult = response.data.result;
+                  const rawResponse = (apiResult.rawResponse ?? {}) as Record<
+                    string,
+                    unknown
+                  >;
+                  const extractedMetrics = (apiResult.extractedMetrics ??
+                    {}) as Record<string, unknown>;
+                  const topicFromResult = (apiResult as Record<string, unknown>)
+                    .topicTitle as string | undefined;
+                  const pdfUrl = (apiResult.pdfUrl ?? null) as string | null;
 
-                transformedResult = {
-                  ...apiResult,
-                  rawResponse,
-                  extractedMetrics,
-                  pdfUrl,
-                  topicTitle: derivedTopicTitle ?? undefined,
-                  sessionId,
-                  source: "submit",
-                } as Record<string, unknown>;
+                  derivedTopicTitle =
+                    topicFromResult ||
+                    sessionStorage.getItem("selectedTopicTitle") ||
+                    null;
+                  derivedMethod = "upload";
 
-                console.log("Fresh submission result:", transformedResult);
+                  transformedResult = {
+                    ...apiResult,
+                    rawResponse,
+                    extractedMetrics,
+                    pdfUrl,
+                    topicTitle: derivedTopicTitle ?? undefined,
+                    sessionId,
+                    source: "submit",
+                  } as Record<string, unknown>;
 
-                // Refresh user info to update token count after successful submission
-                refreshUserInfo({ silent: true });
+                  console.log("Fresh file upload result:", transformedResult);
 
-                // Clear the pending submission data
-                sessionStorage.removeItem("pendingEssaySubmission");
-                sessionStorage.removeItem("essayResultSource");
+                  // Refresh user info to update token count after successful submission
+                  refreshUserInfo({ silent: true });
+
+                  // Clear the pending submission data
+                  sessionStorage.removeItem("pendingEssaySubmission");
+                  sessionStorage.removeItem("essayResultSource");
+                }
+              } else {
+                // Text essay validation
+                if (!submissionPayload.essayText || typeof submissionPayload.essayText !== 'string') {
+                  throw new Error("Missing or invalid essayText in payload");
+                }
+
+                if (!submissionPayload.question || typeof submissionPayload.question !== 'string') {
+                  throw new Error("Missing or invalid question in payload");
+                }
+
+                if (submissionPayload.essayText.trim().length < 10) {
+                  throw new Error("Essay text is too short for evaluation");
+                }
+
+                console.log("✅ Text essay payload validation passed");
+                console.log("📋 Session ID:", sessionId);
+                console.log("📝 Essay length:", submissionPayload.essayText.length);
+                console.log("❓ Question:", submissionPayload.question);
+
+                // Add sessionId to the payload
+                const payloadWithSession = {
+                  ...submissionPayload,
+                  sessionId: sessionId,
+                };
+
+                const response = await essayAPI.submitEssay(payloadWithSession);
+
+                if (response.success && response.data?.result) {
+                  const apiResult = response.data.result;
+                  const rawResponse = (apiResult.rawResponse ?? {}) as Record<
+                    string,
+                    unknown
+                  >;
+                  const extractedMetrics = (apiResult.extractedMetrics ??
+                    {}) as Record<string, unknown>;
+                  const topicFromResult = (apiResult as Record<string, unknown>)
+                    .topicTitle as string | undefined;
+                  const pdfUrl = (apiResult.pdfUrl ?? null) as string | null;
+
+                  derivedTopicTitle =
+                    topicFromResult ||
+                    sessionStorage.getItem("selectedTopicTitle") ||
+                    null;
+                  derivedMethod = pdfUrl ? "upload" : "manual";
+
+                  transformedResult = {
+                    ...apiResult,
+                    rawResponse,
+                    extractedMetrics,
+                    pdfUrl,
+                    topicTitle: derivedTopicTitle ?? undefined,
+                    sessionId,
+                    source: "submit",
+                  } as Record<string, unknown>;
+
+                  console.log("Fresh text submission result:", transformedResult);
+
+                  // Refresh user info to update token count after successful submission
+                  refreshUserInfo({ silent: true });
+
+                  // Clear the pending submission data
+                  sessionStorage.removeItem("pendingEssaySubmission");
+                  sessionStorage.removeItem("essayResultSource");
+                }
               }
             } catch (submitError) {
               console.error("❌ Failed to submit essay:", submitError);
@@ -368,6 +450,11 @@ const EssayResultsPage = () => {
             sessionStorage.setItem("selectedTopicTitle", finalTopicTitle);
           }
           sessionStorage.setItem("essayMethod", finalMethod);
+          
+          // Clear the result source flag after data is successfully loaded
+          sessionStorage.removeItem("essayResultSource");
+          sessionStorage.removeItem("pendingEssaySubmission");
+          
           // Only set loading to false if we have data to show
           setIsLoading(false);
         } else {

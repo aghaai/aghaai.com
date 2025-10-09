@@ -85,7 +85,7 @@ const EssayEvaluationPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5">
             {/* Topic Choice */}
             <div className="flex items-center gap-4">
-              <div className="w-7 h-7 bg-[#A83D81] rounded-sm flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 bg-[#A83D81] rounded-xl flex items-center justify-center flex-shrink-0">
                 <Check className="text-white" />
               </div>
               <div>
@@ -96,7 +96,7 @@ const EssayEvaluationPage = () => {
               </div>
             </div>
             {/* Purple checkmark */}
-            <div className="absolute top-4 right-4 w-6 h-6 bg-purple-600 rounded flex items-center justify-center">
+            <div className="absolute top-4 right-4 w-10 h-10 bg-purple-600 rounded flex items-center justify-center">
               <svg
                 className="w-4 h-4 text-white"
                 fill="currentColor"

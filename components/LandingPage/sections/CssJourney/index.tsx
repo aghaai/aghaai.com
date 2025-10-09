@@ -1,9 +1,12 @@
 "use client";
 import LayoutWrapper from "@/components/Wrapper/LayoutWrapper";
 import Image from "next/image";
-import Link from "next/link";
 
-const CTASection = () => {
+interface CTASectionProps {
+  onStartJourney: () => void;
+}
+
+const CTASection = ({ onStartJourney }: CTASectionProps) => {
   return (
     <LayoutWrapper>
       <section className="py-4 xs:py-6 sm:py-8 md:py-10">
@@ -30,19 +33,18 @@ const CTASection = () => {
                 success.
               </p>
 
-              <Link href="/login">
-                <button
-                  className="
-                    mt-4 xs:mt-5 sm:mt-6 
-                    rounded-lg xs:rounded-md px-6 xs:px-7 sm:px-5 py-3 xs:py-3.5 sm:py-3 text-sm xs:text-[15px] font-semibold
-                    bg-[#1C6758] text-white
-                    hover:bg-[#165347] active:bg-[#0E3A32]
-                    transition shadow-md hover:shadow-lg
-                  "
-                >
-                  Start Your Journey
-                </button>
-              </Link>
+              <button
+                onClick={onStartJourney}
+                className="
+                  mt-4 xs:mt-5 sm:mt-6 
+                  rounded-lg xs:rounded-md px-6 xs:px-7 sm:px-5 py-3 xs:py-3.5 sm:py-3 text-sm xs:text-[15px] font-semibold
+                  bg-[#1C6758] text-white
+                  hover:bg-[#165347] active:bg-[#0E3A32]
+                  transition shadow-md hover:shadow-lg
+                "
+              >
+                Start Your Journey
+              </button>
             </div>
 
             {/* Right image (flush to end) */}

@@ -29,7 +29,7 @@ export const AboutSection = () => {
           </div>
 
           <p className="text-gray-500 w-full max-w-lg text-sm sm:text-base text-justify">
-            CSS Edge is a modern educational platform that empowers CSS
+            Aghaai AI is a modern educational platform that empowers CSS
             aspirants, teachers, and administrators with AI-powered tools, smart
             dashboards, and real-time insights — making preparation smarter,
             faster, and more effective.

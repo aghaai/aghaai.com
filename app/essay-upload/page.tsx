@@ -9,13 +9,6 @@ import {
   Clock,
   X,
   FileText,
-  Bot,
-  Database,
-  GaugeCircle,
-  Binary,
-  Target,
-  Sparkles,
-  TimerReset,
 } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTestNavigation } from "@/components/contexts/TestNavigationContext";
@@ -52,7 +45,6 @@ const EssayUploadPage = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<"success" | "error">("success");
@@ -297,18 +289,27 @@ const EssayUploadPage = () => {
     }
 
     try {
-      setIsSubmitting(true);
       setSubmitError(null);
 
-      // Check if session exists
+      // Check if session exists and is valid
       const sessionId = sessionStorage.getItem("essaySessionId");
       if (!sessionId) {
         setSubmitError(
           "No active session found. Please start a new essay test."
         );
-        setIsSubmitting(false);
         return;
       }
+
+      // Validate session ID format (should be a valid string)
+      if (sessionId.trim().length === 0) {
+        setSubmitError(
+          "Invalid session ID. Please start a new essay test."
+        );
+        return;
+      }
+
+      console.log("🎯 Session validation passed, ID:", sessionId);
+      
       // Get topic title for question
       const topicTitle =
         sessionStorage.getItem("selectedTopicTitle") || selectedTopic;
@@ -316,33 +317,67 @@ const EssayUploadPage = () => {
       // Additional validation
       if (!topicTitle || topicTitle.trim().length === 0) {
         setSubmitError("No topic selected. Please start a new essay test.");
-        setIsSubmitting(false);
         return;
       }
 
       if (!uploadedFile.name || uploadedFile.name.trim().length === 0) {
         setSubmitError("Invalid file. Please upload a valid PDF file.");
-        setIsSubmitting(false);
         return;
       }
-
-      // Prepare submission payload with file
-      const submissionPayload = {
-        file: uploadedFile,
-        sessionId: sessionId,
-      };
-
-      console.log("📤 PDF upload submission:", {
-        fileName: uploadedFile.name,
-        fileSize: uploadedFile.size,
-        fileType: uploadedFile.type,
-        sessionId: sessionId,
-      });
 
       // Validate file type
       if (uploadedFile.type !== "application/pdf") {
         setSubmitError("Please upload a valid PDF file.");
-        setIsSubmitting(false);
+        return;
+      }
+
+      // Convert file to base64 so we can store it in sessionStorage
+      const reader = new FileReader();
+      const fileBase64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(uploadedFile);
+      });
+
+      const fileBase64 = await fileBase64Promise;
+
+      // Prepare submission payload (matching essay-writing structure)
+      const submissionPayload = {
+        fileData: fileBase64,
+        fileName: uploadedFile.name,
+        fileType: uploadedFile.type,
+        fileSize: uploadedFile.size,
+        question: topicTitle.trim(),
+      };
+
+      console.log("📝 Essay submission payload:", {
+        fileName: submissionPayload.fileName,
+        fileSize: submissionPayload.fileSize,
+        fileType: submissionPayload.fileType,
+        question: submissionPayload.question,
+      });
+      console.log("🔑 Session ID:", sessionId);
+
+      // Store submission data and set source flag for results page (EXACT same as essay-writing)
+      try {
+        const payloadJson = JSON.stringify(submissionPayload);
+        sessionStorage.setItem("pendingEssaySubmission", payloadJson);
+        sessionStorage.setItem("essayResultSource", "submit"); // SAME as essay-writing
+        sessionStorage.setItem("selectedTopicTitle", topicTitle);
+        sessionStorage.setItem("essayMethod", "upload");
+        
+        // Verify storage worked
+        const storedPayload = sessionStorage.getItem("pendingEssaySubmission");
+        if (!storedPayload) {
+          throw new Error("Failed to store submission data");
+        }
+        console.log("✅ Submission data stored successfully");
+      } catch (storageError) {
+        console.error("❌ Failed to store submission data:", storageError);
+        setSubmitError("Failed to prepare submission. Please try again.");
         return;
       }
 
@@ -352,74 +387,27 @@ const EssayUploadPage = () => {
       // Clear the essay timer since test is completed
       essayTimer.clear();
 
-      // Import essayAPI to submit the file
-      const { essayAPI } = await import("@/lib/api/essay");
-      
-      console.log("🚀 Submitting file to API...");
-      
-      // Submit the file directly
-      const response = await essayAPI.submitEssay(submissionPayload);
-      
-      console.log("✅ API Response:", response);
-      
-      if (response.success && response.data?.result) {
-        // Store result info for results page
-        const resultInfo = {
-          result: response.data.result,
-          topicTitle: topicTitle.trim(),
-          method: "upload",
-          sessionId: sessionId,
-        };
-        sessionStorage.setItem("essayResult", JSON.stringify(resultInfo));
-        sessionStorage.setItem("selectedTopicTitle", topicTitle);
-        sessionStorage.setItem("essayMethod", "upload");
-        // Don't set "submit" source since we already submitted
-        sessionStorage.setItem("essayResultSource", "completed");
-      }
-
       // Clear unrelated session data
       sessionStorage.removeItem("selectedTopic");
-      sessionStorage.removeItem("pendingEssaySubmission");
       sessionStorage.removeItem("essayTestStarted");
 
       setSubmitError(null);
-      setIsSubmitting(false);
 
       // Refresh user info to update token count after submission
       refreshUserInfo({ silent: true });
 
-      // Redirect to results page - data is already loaded
+      // Redirect to results page immediately - skeleton loader will show there (EXACT same as essay-writing)
       router.push("/essay-results");
     } catch (err) {
-      console.error("❌ Failed to submit essay:", err);
-      
-      // Enhanced error handling
-      if (isAxiosError(err)) {
-        console.error("🔍 Axios Error Details:", {
-          status: err.response?.status,
-          statusText: err.response?.statusText,
-          data: err.response?.data,
-          url: err.config?.url,
-          method: err.config?.method,
-        });
-        
-        const errorData = err.response?.data as { message?: string } | undefined;
-        const message = errorData?.message || err.message || "An error occurred while submitting your essay.";
-        setSubmitError(message);
-        setDialogType("error");
-        setDialogTitle("Submission Failed");
-        setDialogDescription(message);
-      } else {
-        const message = err instanceof Error ? err.message : "An error occurred while submitting your essay.";
-        setSubmitError(message);
-        setDialogType("error");
-        setDialogTitle("Submission Failed");
-        setDialogDescription(message);
-      }
-      
+      console.error("Failed to submit essay:", err);
+      const message = isAxiosError(err)
+        ? err.response?.data?.message || err.message
+        : "An error occurred while submitting your essay.";
+      setSubmitError(message);
+      setDialogType("error");
+      setDialogTitle("Submission Failed");
+      setDialogDescription(message);
       setDialogOpen(true);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -441,45 +429,6 @@ const EssayUploadPage = () => {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        {isSubmitting && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#3d2323]/95 backdrop-blur-sm">
-            <div className="flex flex-col sm:flex-row items-center gap-8">
-              <div className="border-2 border-dashed border-purple-400/80 rounded-2xl p-4 sm:p-6">
-                <div className="flex flex-col gap-4">
-                  {[
-                    Bot,
-                    Database,
-                    GaugeCircle,
-                    Binary,
-                    Target,
-                    Sparkles,
-                    TimerReset,
-                  ].map((Icon, index) => (
-                    <div
-                      key={`upload-loader-icon-${index}`}
-                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-900/30 border border-emerald-400/60 flex items-center justify-center"
-                    >
-                      <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-300" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="border-2 border-dashed border-purple-400/80 rounded-2xl px-6 py-8 sm:px-10 sm:py-12">
-                <div className="space-y-4">
-                  {[1, 2, 3, 4].map((line) => (
-                    <p
-                      key={`upload-loader-line-${line}`}
-                      className="text-emerald-200 text-base sm:text-lg font-medium tracking-wide animate-pulse"
-                    >
-                      AI is reviewing your essay
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="space-y-3 sm:space-y-4 pb-2">
           {/* Essay Topic Section */}
           <div className="bg-white rounded-md shadow-sm  p-4 sm:p-6">
@@ -663,11 +612,11 @@ const EssayUploadPage = () => {
           <div className="flex justify-end pt-2">
             <Button
               onClick={handleSubmitEssay}
-              disabled={!uploadedFile || isSubmitting}
+              disabled={!uploadedFile}
               className="bg-[#1F6B63] hover:bg-[#155a4d] text-white px-4 sm:px-6 md:px-8 py-2.5 sm:py-3 inline-flex items-center gap-2 sm:gap-2.5 text-sm sm:text-base font-semibold rounded-lg shadow-sm transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
             >
               <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              {isSubmitting ? "Submitting..." : "Submit Essay"}
+              Submit Essay
             </Button>
           </div>
         </div>

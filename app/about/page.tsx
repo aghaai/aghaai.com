@@ -1,11 +1,69 @@
+"use client";
 import CTASection from "@/components/LandingPage/sections/CssJourney";
 import { LogoSection } from "@/components/LandingPage/sections/LogoSection";
 import { MentorsSection } from "@/components/LandingPage/sections/MentorsSection";
 import LayoutWrapper from "@/components/Wrapper/LayoutWrapper";
 import Image from "next/image";
-import React from "react";
+import React, { useState } from "react";
+import {
+  LoginDialog,
+  SignUpDialog,
+  EmailVerificationDialog,
+  ForgotPasswordDialog,
+  CreatePasswordDialog,
+  PasswordSuccessDialog,
+} from "@/components/dialogs";
 
 const AboutPage = () => {
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+  const [isVerificationOpen, setIsVerificationOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [isCreatePasswordOpen, setIsCreatePasswordOpen] = useState(false);
+  const [isPasswordSuccessOpen, setIsPasswordSuccessOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+
+  const openLogin = () => {
+    setIsLoginOpen(true);
+    setIsSignUpOpen(false);
+    setIsForgotPasswordOpen(false);
+  };
+
+  const openSignUp = () => {
+    setIsSignUpOpen(true);
+    setIsLoginOpen(false);
+  };
+
+  const openVerification = (email: string) => {
+    setUserEmail(email);
+    setIsVerificationOpen(true);
+    setIsSignUpOpen(false);
+  };
+
+  const openForgotPassword = () => {
+    setIsForgotPasswordOpen(true);
+    setIsLoginOpen(false);
+  };
+
+  const openCreatePassword = () => {
+    setIsCreatePasswordOpen(true);
+    setIsForgotPasswordOpen(false);
+  };
+
+  const openPasswordSuccess = () => {
+    setIsPasswordSuccessOpen(true);
+    setIsCreatePasswordOpen(false);
+  };
+
+  const closeAllDialogs = () => {
+    setIsLoginOpen(false);
+    setIsSignUpOpen(false);
+    setIsVerificationOpen(false);
+    setIsForgotPasswordOpen(false);
+    setIsCreatePasswordOpen(false);
+    setIsPasswordSuccessOpen(false);
+  };
+
   return (
     <>
       <div className="bg-[#1C6758] text-white">
@@ -118,8 +176,49 @@ const AboutPage = () => {
 
       <MentorsSection />
       <div className="-mt-6 xs:-mt-8 sm:-mt-10">
-        <CTASection />
+        <CTASection onStartJourney={openLogin} />
       </div>
+
+      {/* Auth Dialogs */}
+      <LoginDialog
+        open={isLoginOpen}
+        onOpenChange={(open) => !open && closeAllDialogs()}
+        onSwitchToSignUp={openSignUp}
+        onForgotPassword={openForgotPassword}
+        onSuccessfulLogin={closeAllDialogs}
+      />
+      <SignUpDialog
+        open={isSignUpOpen}
+        onOpenChange={(open) => !open && closeAllDialogs()}
+        onSwitchToLogin={openLogin}
+        onSuccessfulSignUp={(email) => openVerification(email)}
+      />
+      <EmailVerificationDialog
+        open={isVerificationOpen}
+        onOpenChange={(open) => !open && closeAllDialogs()}
+        email={userEmail}
+        onSuccessfulVerification={closeAllDialogs}
+        isPasswordReset={false}
+      />
+      <ForgotPasswordDialog
+        open={isForgotPasswordOpen}
+        onOpenChange={(open) => !open && closeAllDialogs()}
+        onEmailSent={(email) => {
+          setUserEmail(email);
+          openCreatePassword();
+        }}
+      />
+      <CreatePasswordDialog
+        open={isCreatePasswordOpen}
+        onOpenChange={(open) => !open && closeAllDialogs()}
+        email={userEmail}
+        onPasswordCreated={openPasswordSuccess}
+      />
+      <PasswordSuccessDialog
+        open={isPasswordSuccessOpen}
+        onOpenChange={(open) => !open && closeAllDialogs()}
+        onContinue={openLogin}
+      />
     </>
   );
 };

@@ -2,10 +2,13 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  onStartJourney: () => void;
+}
+
+export default function HeroSection({ onStartJourney }: HeroSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -101,11 +104,12 @@ export default function HeroSection() {
                     Read More
                   </button>
                 )}
-                <Link href="/login">
-                  <button className="w-full xs:w-auto xs:min-w-[180px] sm:w-auto bg-[#1C6758] text-white px-6 xs:px-8 sm:px-6 py-3 xs:py-3.5 sm:py-2.5 rounded-lg xs:rounded-md hover:bg-[#13483c] transition text-sm xs:text-base font-medium mt-2 xs:mt-3 sm:mt-4 shadow-md hover:shadow-lg">
-                    Start Your Journey
-                  </button>
-                </Link>
+                <button
+                  onClick={onStartJourney}
+                  className="w-full xs:w-auto xs:min-w-[180px] sm:w-auto bg-[#1C6758] text-white px-6 xs:px-8 sm:px-6 py-3 xs:py-3.5 sm:py-2.5 rounded-lg xs:rounded-md hover:bg-[#13483c] transition text-sm xs:text-base font-medium mt-2 xs:mt-3 sm:mt-4 shadow-md hover:shadow-lg"
+                >
+                  Start Your Journey
+                </button>
               </motion.div>
             </motion.div>
 
