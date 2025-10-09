@@ -1,21 +1,21 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 const DashboardHero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [direction, setDirection] = useState(1); // 1 for forward, -1 for backward
   const router = useRouter();
 
   // Content variants that will change over time
   const contentVariants = [
     {
       id: 1,
-      // btn:"Instruction",
       title: "Welcome to Your Essay Dashboard",
       description: "Start your journey with AI-powered writing evaluation",
-      buttonText: "Start Essay Test",
+      buttonText: "Get Started",
       image: "/cta/img1.svg",
       alt: "Essay Practice",
     },
@@ -25,7 +25,7 @@ const DashboardHero = () => {
       title: "Write a structured essay with multiple styles",
       description:
         "Write a 2500–3000-word essay using exposition, argumentation, and narration.",
-      buttonText: "Start Essay Test",
+      buttonText: "Next",
       image: "/cta/img2.svg",
       alt: "AI Feedback",
     },
@@ -35,7 +35,7 @@ const DashboardHero = () => {
       title: "Match question numbers correctly",
       description:
         "Write each answer in line with its question number in the paper.",
-      buttonText: "Start Essay Test",
+      buttonText: "Next",
       image: "/cta/img3.svg",
       alt: "Progress Tracking",
     },
@@ -45,27 +45,49 @@ const DashboardHero = () => {
       title: "Avoid leaving blank pages",
       description:
         "Do not leave space between answers. Cross out all unused pages in your answer book.",
-      buttonText: "Start Essay Test",
+      buttonText: "Start Test",
       image: "/cta/img4.svg",
       alt: "Study Plans",
     },
   ];
 
-  // Auto-slide functionality
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % contentVariants.length);
-    }, 4000); // Change every 4 seconds
-
-    return () => clearInterval(timer);
-  }, [contentVariants.length]);
-
-  // Handle button click - navigate to essay evaluation
+  // Handle button click - progress to next slide or navigate to essay evaluation
   const handleButtonClick = () => {
-    router.push("/essay-evaluation");
+    if (currentSlide === contentVariants.length - 1) {
+      // Last slide - navigate to essay evaluation
+      router.push("/essay-evaluation");
+    } else {
+      // Progress to next slide
+      setDirection(1);
+      setCurrentSlide((prev) => prev + 1);
+    }
+  };
+
+  // Handle manual slide navigation via progress indicators
+  const handleSlideChange = (index: number) => {
+    if (index !== currentSlide) {
+      setDirection(index > currentSlide ? 1 : -1);
+      setCurrentSlide(index);
+    }
   };
 
   const currentContent = contentVariants[currentSlide];
+
+  // Slide variants for horizontal animation
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 1000 : -1000,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      x: direction > 0 ? -1000 : 1000,
+      opacity: 0,
+    }),
+  };
   return (
     <section className="pb-4 sm:pb-6 md:pb-8 lg:pb-10">
       {/* Outer banner */}
@@ -89,53 +111,35 @@ const DashboardHero = () => {
       >
         {/* Content grid */}
         <div className="grid items-center gap-4 sm:gap-6 md:gap-8 lg:gap-12 xl:gap-16 grid-cols-1 md:grid-cols-[2.5fr_0.8fr]">
-          <div className="text-white">
-            <AnimatePresence mode="wait">
-              <motion.h2
-                key={`title-${currentSlide}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-                className="font-medium text-md border rounded-xl w-fit px-3 border-[#FFC14E] mb-1"
-              >
-                {currentContent.btn}
-              </motion.h2>
-            </AnimatePresence>
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={currentSlide}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.3 },
+              }}
+              className="text-white"
+            >
+              {currentContent.btn && (
+                <h2 className="font-medium text-md border rounded-xl w-fit px-3 border-[#FFC14E] mb-1">
+                  {currentContent.btn}
+                </h2>
+              )}
 
-            <AnimatePresence mode="wait">
-              <motion.h2
-                key={`title-${currentSlide}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-                className="font-semibold tracking-[-0.01em] text-[20px] xs:text-[22px] sm:text-[26px] md:text-[30px] lg:text-[34px] xl:text-[36px] leading-tight"
-              >
+              <h2 className="font-semibold tracking-[-0.01em] text-[20px] xs:text-[22px] sm:text-[26px] md:text-[30px] lg:text-[34px] xl:text-[36px] leading-tight">
                 {currentContent.title}
-              </motion.h2>
-            </AnimatePresence>
+              </h2>
 
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={`desc-${currentSlide}`}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.5, ease: "easeInOut", delay: 0.1 }}
-                className="mt-2 sm:mt-3 md:mt-4 text-white/85 text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed"
-              >
+              <p className="mt-2 sm:mt-3 md:mt-4 text-white/85 text-xs sm:text-sm md:text-base lg:text-lg leading-relaxed">
                 {currentContent.description}
-              </motion.p>
-            </AnimatePresence>
+              </p>
 
-            <AnimatePresence mode="wait">
-              <motion.button
-                key={`button-${currentSlide}`}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.4, ease: "easeInOut", delay: 0.2 }}
+              <button
                 onClick={handleButtonClick}
                 className="
                     mt-4 sm:mt-5 md:mt-6 inline-flex items-center justify-center
@@ -150,20 +154,25 @@ const DashboardHero = () => {
                   "
               >
                 {currentContent.buttonText}
-              </motion.button>
-            </AnimatePresence>
-          </div>
+              </button>
+            </motion.div>
+          </AnimatePresence>
 
           {/* Right image - Animated */}
           <div className="flex justify-end">
             <div className="relative">
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={`image-${currentSlide}`}
-                  initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  exit={{ opacity: 0, scale: 1.1, rotate: 10 }}
-                  transition={{ duration: 0.7, ease: "easeInOut" }}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.3 },
+                  }}
                   className="h-[60px] w-[60px] -mt-[4rem] sm:-mt-0 xs:h-[110px] xs:w-[110px] sm:h-[120px] sm:w-[120px] md:h-[140px] md:w-[140px] lg:h-[160px] lg:w-[160px] xl:h-[180px] xl:w-[180px] overflow-hidden"
                 >
                   <Image
@@ -189,7 +198,7 @@ const DashboardHero = () => {
                   ? "w-6 sm:w-8 bg-[#F2B94B]"
                   : "w-1.5 sm:w-2 bg-white/30 hover:bg-white/50"
               }`}
-              onClick={() => setCurrentSlide(index)}
+              onClick={() => handleSlideChange(index)}
               whileHover={{ scale: 1.2 }}
               whileTap={{ scale: 0.9 }}
             />

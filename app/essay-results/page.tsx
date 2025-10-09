@@ -795,11 +795,6 @@ const EssayResultsPage = () => {
                                         <h3 className="text-base font-medium text-gray-900">
                                           {categoryTitle}
                                         </h3>
-                                        {score !== null && (
-                                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-                                            {score}%
-                                          </span>
-                                        )}
                                         <span
                                           className={`inline-flex items-center rounded-lg px-2 py-1 text-xs font-medium ${
                                             issuesCount === 0
@@ -812,11 +807,18 @@ const EssayResultsPage = () => {
                                           {issuesCount} issues
                                         </span>
                                       </div>
-                                      {isExpanded ? (
-                                        <ChevronDown className="h-5 w-5 text-gray-500" />
-                                      ) : (
-                                        <ChevronRight className="h-5 w-5 text-gray-500" />
-                                      )}
+                                      <div className="flex items-center gap-3">
+                                        {score !== null && (
+                                          <span className="inline-flex items-center justify-center rounded-2xl bg-[#E0ECFF] px-5 py-3 text-sm font-semibold text-black sm:text-base">
+                                            {score}/100
+                                          </span>
+                                        )}
+                                        {isExpanded ? (
+                                          <ChevronDown className="h-5 w-5 text-gray-500" />
+                                        ) : (
+                                          <ChevronRight className="h-5 w-5 text-gray-500" />
+                                        )}
+                                      </div>
                                     </div>
                                     {isExpanded && (
                                       <div className="p-4 bg-white">

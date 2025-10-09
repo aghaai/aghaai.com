@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { topicsAPI, type Topic } from "@/lib/api/topics";
 import { essayAPI } from "@/lib/api/essay";
 import { isAxiosError } from "axios";
+import { essayTimer } from "@/lib/utils/essayTimer";
 import TestWarningDialog from "@/components/dialogs/TestWarningDialog";
 import { useNavigationBlock } from "@/hooks/useNavigationBlock";
 
@@ -95,8 +96,13 @@ const EssayTestPage = () => {
     // Deactivate test to allow navigation
     setIsTestActive(false);
     setShowWarningDialog(false);
-    // Clear the test started flag
+    // Clear session data
     sessionStorage.removeItem("essayTestStarted");
+    sessionStorage.removeItem("essaySessionId");
+    sessionStorage.removeItem("selectedTopic");
+    sessionStorage.removeItem("selectedTopicTitle");
+    sessionStorage.removeItem("essayMethod");
+    essayTimer.clear();
     // Navigate back
     setTimeout(() => {
       router.push("/essay-evaluation");

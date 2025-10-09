@@ -159,7 +159,7 @@ const EssayEvaluationPage = () => {
               >
                 <CardContent className="px-8 py-6 text-center">
                   <Edit3 className="w-6 h-6 mx-auto" />
-                  <h4 className="font-medium text-xl">Write Typing</h4>
+                  <h4 className="font-medium text-xl">Start Typing</h4>
                   <p className="text-sm text-[#ADADAD]">
                     Type your essay directly in our rich text editor
                   </p>

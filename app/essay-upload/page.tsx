@@ -451,7 +451,7 @@ const EssayUploadPage = () => {
                     {formatTime(timeRemaining)}
                   </div>
                   <div className="text-xs sm:text-sm text-gray-500">
-                    3-hour writing timer
+                    3:15 hour writing & upload timer
                   </div>
                 </div>
               </div>
