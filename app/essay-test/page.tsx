@@ -9,6 +9,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { topicsAPI, type Topic } from "@/lib/api/topics";
 import { essayAPI } from "@/lib/api/essay";
 import { isAxiosError } from "axios";
+import TestWarningDialog from "@/components/dialogs/TestWarningDialog";
+import { useNavigationBlock } from "@/hooks/useNavigationBlock";
 
 const EssayTestPage = () => {
   const router = useRouter();
@@ -19,6 +21,25 @@ const EssayTestPage = () => {
   const [topicsError, setTopicsError] = useState<string | null>(null);
   const [isSelectingTopic, setIsSelectingTopic] = useState(false);
   const [selectError, setSelectError] = useState<string | null>(null);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [isTestActive, setIsTestActive] = useState(false);
+
+  // Check if test was started from essay-evaluation
+  useEffect(() => {
+    const testStarted = sessionStorage.getItem("essayTestStarted");
+    if (testStarted === "true") {
+      // Set test as active to enable warning dialog on navigation
+      setIsTestActive(true);
+    }
+  }, []);
+
+  // Use navigation block hook to intercept navigation attempts
+  useNavigationBlock({
+    shouldBlock: isTestActive,
+    onNavigationAttempt: () => {
+      setShowWarningDialog(true);
+    },
+  });
 
   // Timer countdown effect
   useEffect(() => {
@@ -69,6 +90,26 @@ const EssayTestPage = () => {
     fetchRandomTopics();
   }, [fetchRandomTopics]);
 
+  // Handler for when user confirms leaving the test
+  const handleConfirmLeave = () => {
+    // Deactivate test to allow navigation
+    setIsTestActive(false);
+    setShowWarningDialog(false);
+    // Clear the test started flag
+    sessionStorage.removeItem("essayTestStarted");
+    // Navigate back
+    setTimeout(() => {
+      router.push("/essay-evaluation");
+    }, 0);
+  };
+
+  // Handler for when user cancels and stays on the test
+  const handleCancelLeave = () => {
+    setShowWarningDialog(false);
+    // Push state again to maintain blocking
+    window.history.pushState(null, '', window.location.pathname);
+  };
+
   const handleStartWriting = async () => {
     if (selectedTopicId === null) return;
 
@@ -91,6 +132,7 @@ const EssayTestPage = () => {
       // Call select topic API
       const response = await essayAPI.selectTopic({
         topicId: selectedTopicId,
+        sessionId: sessionId,
       });
 
       if (response.success) {
@@ -109,13 +151,19 @@ const EssayTestPage = () => {
         }
 
         // Call start-essay endpoint
-        const startEssayResponse = await essayAPI.startEssay();
+        const startEssayResponse = await essayAPI.startEssay({
+          sessionId: response.data?.sessionId || sessionId,
+        });
 
         if (startEssayResponse.success && startEssayResponse.data?.sessionId) {
           sessionStorage.setItem(
             "essaySessionId",
             startEssayResponse.data.sessionId
           );
+
+          // Deactivate navigation blocking since user is proceeding with the test
+          setIsTestActive(false);
+          sessionStorage.removeItem("essayTestStarted");
 
           // Check the method selected in essay-evaluation
           const method = sessionStorage.getItem("essayMethod");
@@ -274,6 +322,13 @@ const EssayTestPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Test Warning Dialog */}
+        <TestWarningDialog
+          isOpen={showWarningDialog}
+          onCancel={handleCancelLeave}
+          onConfirm={handleConfirmLeave}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );

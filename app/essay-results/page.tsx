@@ -17,7 +17,7 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { essayAPI } from "@/lib/api/essay";
 import { useUserInfo } from "@/components/contexts/UserInfoContext";
-import EssayResultsSkeleton from "@/components/EssayResultsSkeleton";
+import AIEvaluationLoader from "@/components/AIEvaluationLoader";
 import { AxiosError } from "axios";
 
 const EssayResultsPage = () => {
@@ -54,7 +54,7 @@ const EssayResultsPage = () => {
 
       try {
         const sessionId = sessionStorage.getItem("essaySessionId");
-        const resultSource = sessionStorage.getItem("essayResultSource"); // "submit" or "history"
+        const resultSource = sessionStorage.getItem("essayResultSource"); // "submit", "history", or "completed"
         const submissionData = sessionStorage.getItem("pendingEssaySubmission");
 
         console.log(
@@ -70,9 +70,28 @@ const EssayResultsPage = () => {
         setCurrentSessionId(sessionId);
 
         if (sessionId) {
-          // Check if this is a fresh submission (POST) or history selection (GET)
-          if (resultSource === "submit" && submissionData) {
-            // This is a fresh submission - use POST API
+          // Check if this is already completed (file upload), fresh submission (text), or history selection
+          if (resultSource === "completed") {
+            // File upload - result is already stored
+            const storedResult = sessionStorage.getItem("essayResult");
+            if (storedResult) {
+              try {
+                const parsedResult = JSON.parse(storedResult) as Record<string, unknown>;
+                transformedResult = parsedResult.result as Record<string, unknown>;
+                derivedTopicTitle = (parsedResult.topicTitle as string) || sessionStorage.getItem("selectedTopicTitle");
+                derivedMethod = (parsedResult.method as "manual" | "upload") || "upload";
+                
+                console.log("Loaded completed file upload result:", transformedResult);
+                
+                // Clear the completed flag
+                sessionStorage.removeItem("essayResultSource");
+              } catch (parseError) {
+                console.error("Failed to parse completed result:", parseError);
+                fallbackErrorMessage = "Failed to load essay results.";
+              }
+            }
+          } else if (resultSource === "submit" && submissionData) {
+            // This is a fresh text submission - use POST API
             try {
               const submissionPayload = JSON.parse(submissionData);
               console.log(
@@ -102,7 +121,13 @@ const EssayResultsPage = () => {
               console.log("📝 Essay length:", submissionPayload.essayText.length);
               console.log("❓ Question:", submissionPayload.question);
 
-              const response = await essayAPI.submitEssay(submissionPayload);
+              // Add sessionId to the payload
+              const payloadWithSession = {
+                ...submissionPayload,
+                sessionId: sessionId,
+              };
+
+              const response = await essayAPI.submitEssay(payloadWithSession);
 
               if (response.success && response.data?.result) {
                 const apiResult = response.data.result;
@@ -420,9 +445,9 @@ const EssayResultsPage = () => {
   //   router.push("/essay-test");
   // };
 
-  // Show skeleton loader while loading
+  // Show AI Evaluation Loader while loading
   if (isLoading) {
-    return <EssayResultsSkeleton />;
+    return <AIEvaluationLoader isVisible={true} />;
   }
 
   return (

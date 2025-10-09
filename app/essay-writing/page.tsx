@@ -31,8 +31,9 @@ import {
 } from "@/components/ui/dialog";
 import { isAxiosError } from "axios";
 import { essayTimer } from "@/lib/utils/essayTimer";
-import AIEvaluationLoader from "@/components/AIEvaluationLoader";
 import { useUserInfo } from "@/components/contexts/UserInfoContext";
+import TestWarningDialog from "@/components/dialogs/TestWarningDialog";
+import { useNavigationBlock } from "@/hooks/useNavigationBlock";
 
 const EssayWritingPage = () => {
   const router = useRouter();
@@ -56,7 +57,40 @@ const EssayWritingPage = () => {
   const [dialogType, setDialogType] = useState<"success" | "error">("success");
   const [dialogTitle, setDialogTitle] = useState("Essay Submission");
   const [dialogDescription, setDialogDescription] = useState("");
-  const [showAILoader, setShowAILoader] = useState(false);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [isTestActive, setIsTestActive] = useState(true);
+
+  // Use navigation block hook to intercept navigation attempts
+  useNavigationBlock({
+    shouldBlock: isTestActive,
+    onNavigationAttempt: () => {
+      setShowWarningDialog(true);
+    },
+  });
+
+  // Handler for when user confirms leaving the test
+  const handleConfirmLeave = () => {
+    // Deactivate test to allow navigation
+    setIsTestActive(false);
+    setTestActive(false);
+    setShowWarningDialog(false);
+    // Clear session data
+    sessionStorage.removeItem("essayTestStarted");
+    sessionStorage.removeItem("essaySessionId");
+    sessionStorage.removeItem("selectedTopic");
+    sessionStorage.removeItem("selectedTopicTitle");
+    sessionStorage.removeItem("essayMethod");
+    essayTimer.clear();
+    // Navigate back
+    setTimeout(() => {
+      router.push("/essay-evaluation");
+    }, 0);
+  };
+
+  // Handler for when user cancels and stays on the test
+  const handleCancelLeave = () => {
+    setShowWarningDialog(false);
+  };
 
   // Get selected topic from session storage and validate session
   useEffect(() => {
@@ -93,7 +127,7 @@ const EssayWritingPage = () => {
       if (hasResult) {
         router.push("/essay-results");
       } else {
-        router.push("/essay-evaluation");
+        router.push("/essay-results");
       }
     };
 
@@ -295,12 +329,14 @@ const EssayWritingPage = () => {
       }
 
       setTestActive(false); // Deactivate test to allow navigation
+      setIsTestActive(false); // Disable navigation blocking
       
       // Clear the essay timer since test is completed
       essayTimer.clear();
 
       // Clear unrelated session data
       sessionStorage.removeItem("selectedTopic");
+      sessionStorage.removeItem("essayTestStarted");
 
 
       setSubmitError(null);
@@ -309,14 +345,8 @@ const EssayWritingPage = () => {
       // Refresh user info to update token count after submission
       refreshUserInfo({ silent: true });
 
-      // Show AI evaluation loader
-      setShowAILoader(true);
-
-      // Redirect to results page after a short delay to show the loader
-      setTimeout(() => {
-        setShowAILoader(false);
-        router.push("/essay-results");
-      }, 1500);
+      // Redirect to results page immediately - skeleton loader will show there
+      router.push("/essay-results");
     } catch (err) {
       console.error("Failed to submit essay:", err);
       const message = isAxiosError(err)
@@ -817,9 +847,6 @@ const EssayWritingPage = () => {
           </DialogContent>
         </Dialog>
 
-        {/* AI Evaluation Loader */}
-        <AIEvaluationLoader isVisible={showAILoader} />
-
         <style jsx>{`
           [contenteditable]:empty:before {
             content: attr(data-placeholder);
@@ -868,6 +895,13 @@ const EssayWritingPage = () => {
           }
         `}</style>
       </DashboardLayout>
+
+      {/* Warning Dialog for Navigation Attempts */}
+      <TestWarningDialog
+        isOpen={showWarningDialog}
+        onCancel={handleCancelLeave}
+        onConfirm={handleConfirmLeave}
+      />
     </ProtectedRoute>
   );
 };

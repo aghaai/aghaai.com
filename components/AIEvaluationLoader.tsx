@@ -9,6 +9,7 @@ interface AIEvaluationLoaderProps {
 const AIEvaluationLoader: React.FC<AIEvaluationLoaderProps> = ({ isVisible }) => {
   if (!isVisible) return null;
 
+
   return (
     <div className="fixed inset-0 bg-transparent  backdrop-blur-md z-50 flex flex-col items-center justify-center">
       {/* Main Content Container */}
@@ -37,7 +38,7 @@ const AIEvaluationLoader: React.FC<AIEvaluationLoaderProps> = ({ isVisible }) =>
 
         {/* Main Title */}
         <h2 className="text-3xl font-bold text-gray-800 mb-4">
-          AI is Evaluating Your Essay
+          Aghaai AI is Evaluating Your Essay
         </h2>
 
         {/* Animated subtitle with dots */}

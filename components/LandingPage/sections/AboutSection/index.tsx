@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 import LayoutWrapper from "@/components/Wrapper/LayoutWrapper";
 
 export const AboutSection = () => {
@@ -43,9 +44,11 @@ export const AboutSection = () => {
           />
 
           <div className="mt-2 sm:mt-4">
-            <Button className="w-[8rem] px-5 py-2 bg-[#1c6758] rounded-md hover:bg-[#145a47] transition  sm:w-[10rem] text-white focus:ring-2 focus:ring-[#1c6758] focus:ring-offset-2">
-              About Us
-            </Button>
+            <Link href="/about">
+              <Button className="w-[8rem] px-5 py-2 bg-[#1c6758] rounded-md hover:bg-[#145a47] transition  sm:w-[10rem] text-white focus:ring-2 focus:ring-[#1c6758] focus:ring-offset-2">
+                About Us
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

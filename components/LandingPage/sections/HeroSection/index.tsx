@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function HeroSection() {
@@ -74,7 +75,7 @@ export default function HeroSection() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.5, ease: "easeInOut" }}
-                  className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold mb-3 xs:mb-4 sm:mb-5 leading-[1.15] xs:leading-tight tracking-tight"
+                  className="text-4xl lg:text-5xl xl:text-6xl font-semibold mb-3 xs:mb-4 sm:mb-5 leading-[1.15] xs:leading-tight tracking-tight"
                 >
                   <span className="relative text-[#1C6758] shimmer px-1">
                     {currentVariant.title}
@@ -89,20 +90,22 @@ export default function HeroSection() {
                 transition={{ delay: 0.3, duration: 0.7 }}
                 className="relative"
               >
-                <p className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl text-gray-700 leading-5 xs:leading-6 sm:leading-7 mb-3 xs:mb-4 sm:mb-2 text-left xs:text-justify max-w-full lg:max-w-2xl">
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-700 leading-5 xs:leading-6 sm:leading-7 mb-3 xs:mb-4 sm:mb-2 text-left xs:text-justify max-w-full lg:max-w-2xl">
                   {isMobile ? (isExpanded ? fullText : shortText) : fullText}
                 </p>
                 {isMobile && !isExpanded && (
                   <button
                     onClick={() => setIsExpanded(true)}
-                    className="text-[#1C6758] text-xs xs:text-sm font-medium underline hover:opacity-80 transition mb-3 xs:mb-4 sm:mb-2 inline-block"
+                    className="text-[#1C6758] text-sm font-medium underline hover:opacity-80 transition mb-3 xs:mb-4 sm:mb-2 inline-block"
                   >
                     Read More
                   </button>
                 )}
-                <button className="w-full xs:w-auto xs:min-w-[180px] sm:w-auto bg-[#1C6758] text-white px-6 xs:px-8 sm:px-6 py-3 xs:py-3.5 sm:py-2.5 rounded-lg xs:rounded-md hover:bg-[#13483c] transition text-sm xs:text-base font-medium mt-2 xs:mt-3 sm:mt-4 shadow-md hover:shadow-lg">
-                  Start Your Journey
-                </button>
+                <Link href="/login">
+                  <button className="w-full xs:w-auto xs:min-w-[180px] sm:w-auto bg-[#1C6758] text-white px-6 xs:px-8 sm:px-6 py-3 xs:py-3.5 sm:py-2.5 rounded-lg xs:rounded-md hover:bg-[#13483c] transition text-sm xs:text-base font-medium mt-2 xs:mt-3 sm:mt-4 shadow-md hover:shadow-lg">
+                    Start Your Journey
+                  </button>
+                </Link>
               </motion.div>
             </motion.div>
 

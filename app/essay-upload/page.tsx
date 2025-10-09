@@ -30,8 +30,9 @@ import {
 } from "@/components/ui/dialog";
 import { isAxiosError } from "axios";
 import { essayTimer } from "@/lib/utils/essayTimer";
-import AIEvaluationLoader from "@/components/AIEvaluationLoader";
 import { useUserInfo } from "@/components/contexts/UserInfoContext";
+import TestWarningDialog from "@/components/dialogs/TestWarningDialog";
+import { useNavigationBlock } from "@/hooks/useNavigationBlock";
 
 const EssayUploadPage = () => {
   const router = useRouter();
@@ -57,7 +58,40 @@ const EssayUploadPage = () => {
   const [dialogType, setDialogType] = useState<"success" | "error">("success");
   const [dialogTitle, setDialogTitle] = useState("Essay Submission");
   const [dialogDescription, setDialogDescription] = useState("");
-  const [showAILoader, setShowAILoader] = useState(false);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [isTestActive, setIsTestActive] = useState(true);
+
+  // Use navigation block hook to intercept navigation attempts
+  useNavigationBlock({
+    shouldBlock: isTestActive,
+    onNavigationAttempt: () => {
+      setShowWarningDialog(true);
+    },
+  });
+
+  // Handler for when user confirms leaving the test
+  const handleConfirmLeave = () => {
+    // Deactivate test to allow navigation
+    setIsTestActive(false);
+    setTestActive(false);
+    setShowWarningDialog(false);
+    // Clear session data
+    sessionStorage.removeItem("essayTestStarted");
+    sessionStorage.removeItem("essaySessionId");
+    sessionStorage.removeItem("selectedTopic");
+    sessionStorage.removeItem("selectedTopicTitle");
+    sessionStorage.removeItem("essayMethod");
+    essayTimer.clear();
+    // Navigate back
+    setTimeout(() => {
+      router.push("/essay-evaluation");
+    }, 0);
+  };
+
+  // Handler for when user cancels and stays on the test
+  const handleCancelLeave = () => {
+    setShowWarningDialog(false);
+  };
 
   // Get selected topic from session storage and validate session
   useEffect(() => {
@@ -119,7 +153,7 @@ const EssayUploadPage = () => {
         router.push("/essay-results");
       } else {
         // If no result yet, redirect to evaluation
-        router.push("/essay-evaluation");
+        router.push("/essay-results");
       }
     };
 
@@ -292,31 +326,61 @@ const EssayUploadPage = () => {
         return;
       }
 
-      // Prepare submission payload
-      // Note: The current API expects essayText, but for PDF upload we would typically
-      // need a different endpoint or the backend needs to handle file extraction.
-      // For now, we'll submit a placeholder indicating it's a PDF submission.
+      // Prepare submission payload with file
       const submissionPayload = {
-        essayText: `[PDF Upload: ${uploadedFile.name.trim()}]`,
-        question: topicTitle.trim(),
+        file: uploadedFile,
+        sessionId: sessionId,
       };
 
-      console.log("PDF upload submission payload:", submissionPayload);
-      console.log("Session ID:", sessionId);
+      console.log("📤 PDF upload submission:", {
+        fileName: uploadedFile.name,
+        fileSize: uploadedFile.size,
+        fileType: uploadedFile.type,
+        sessionId: sessionId,
+      });
 
-      // Store submission data and set source flag for results page
-      sessionStorage.setItem("pendingEssaySubmission", JSON.stringify(submissionPayload));
-      sessionStorage.setItem("essayResultSource", "submit");
-      sessionStorage.setItem("selectedTopicTitle", topicTitle);
-      sessionStorage.setItem("essayMethod", "upload");
+      // Validate file type
+      if (uploadedFile.type !== "application/pdf") {
+        setSubmitError("Please upload a valid PDF file.");
+        setIsSubmitting(false);
+        return;
+      }
 
       setTestActive(false); // Deactivate test to allow navigation
+      setIsTestActive(false); // Disable navigation blocking
       
       // Clear the essay timer since test is completed
       essayTimer.clear();
 
+      // Import essayAPI to submit the file
+      const { essayAPI } = await import("@/lib/api/essay");
+      
+      console.log("🚀 Submitting file to API...");
+      
+      // Submit the file directly
+      const response = await essayAPI.submitEssay(submissionPayload);
+      
+      console.log("✅ API Response:", response);
+      
+      if (response.success && response.data?.result) {
+        // Store result info for results page
+        const resultInfo = {
+          result: response.data.result,
+          topicTitle: topicTitle.trim(),
+          method: "upload",
+          sessionId: sessionId,
+        };
+        sessionStorage.setItem("essayResult", JSON.stringify(resultInfo));
+        sessionStorage.setItem("selectedTopicTitle", topicTitle);
+        sessionStorage.setItem("essayMethod", "upload");
+        // Don't set "submit" source since we already submitted
+        sessionStorage.setItem("essayResultSource", "completed");
+      }
+
       // Clear unrelated session data
       sessionStorage.removeItem("selectedTopic");
+      sessionStorage.removeItem("pendingEssaySubmission");
+      sessionStorage.removeItem("essayTestStarted");
 
       setSubmitError(null);
       setIsSubmitting(false);
@@ -324,23 +388,35 @@ const EssayUploadPage = () => {
       // Refresh user info to update token count after submission
       refreshUserInfo({ silent: true });
 
-      // Show AI evaluation loader
-      setShowAILoader(true);
-
-      // Redirect to results page after a short delay to show the loader
-      setTimeout(() => {
-        setShowAILoader(false);
-        router.push("/essay-results");
-      }, 1500);
+      // Redirect to results page - data is already loaded
+      router.push("/essay-results");
     } catch (err) {
-      console.error("Failed to submit essay:", err);
-      const message = isAxiosError(err)
-        ? err.response?.data?.message || err.message
-        : "An error occurred while submitting your essay.";
-      setSubmitError(message);
-      setDialogType("error");
-      setDialogTitle("Submission Failed");
-      setDialogDescription(message);
+      console.error("❌ Failed to submit essay:", err);
+      
+      // Enhanced error handling
+      if (isAxiosError(err)) {
+        console.error("🔍 Axios Error Details:", {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          url: err.config?.url,
+          method: err.config?.method,
+        });
+        
+        const errorData = err.response?.data as { message?: string } | undefined;
+        const message = errorData?.message || err.message || "An error occurred while submitting your essay.";
+        setSubmitError(message);
+        setDialogType("error");
+        setDialogTitle("Submission Failed");
+        setDialogDescription(message);
+      } else {
+        const message = err instanceof Error ? err.message : "An error occurred while submitting your essay.";
+        setSubmitError(message);
+        setDialogType("error");
+        setDialogTitle("Submission Failed");
+        setDialogDescription(message);
+      }
+      
       setDialogOpen(true);
     } finally {
       setIsSubmitting(false);
@@ -628,10 +704,14 @@ const EssayUploadPage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* AI Evaluation Loader */}
-        <AIEvaluationLoader isVisible={showAILoader} />
       </DashboardLayout>
+
+      {/* Warning Dialog for Navigation Attempts */}
+      <TestWarningDialog
+        isOpen={showWarningDialog}
+        onCancel={handleCancelLeave}
+        onConfirm={handleConfirmLeave}
+      />
     </ProtectedRoute>
   );
 };

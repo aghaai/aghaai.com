@@ -15,6 +15,7 @@ export interface StartSessionResponse {
 
 export interface SelectTopicPayload {
   topicId: string;
+  sessionId: string;
 }
 
 export interface SelectTopicResponse {
@@ -24,6 +25,10 @@ export interface SelectTopicResponse {
     sessionId: string;
   };
   timestamp: string;
+}
+
+export interface StartEssayPayload {
+  sessionId: string;
 }
 
 export interface StartEssayResponse {
@@ -36,8 +41,9 @@ export interface StartEssayResponse {
 }
 
 export interface SubmitEssayPayload {
-  essayText: string;
-  question: string;
+  essayText?: string;
+  file?: File;
+  sessionId: string;
 }
 
 export interface SubmitEssayResponse {
@@ -169,8 +175,8 @@ export const essayAPI = {
     payload: SelectTopicPayload,
   ): Promise<SelectTopicResponse> => {
     const response = await axiosInstance.post(
-      '/api/essay/sessions/select-topic',
-      payload,
+      `/api/essay/sessions/select-topic/${payload.sessionId}`,
+      { topicId: payload.topicId },
       {
         headers: {
           ...getAuthHeader(),
@@ -181,9 +187,9 @@ export const essayAPI = {
     return response.data;
   },
 
-  startEssay: async (): Promise<StartEssayResponse> => {
+  startEssay: async (payload: StartEssayPayload): Promise<StartEssayResponse> => {
     const response = await axiosInstance.post(
-      '/api/essay/sessions/start-essay',
+      `/api/essay/sessions/start-essay/${payload.sessionId}`,
       {},
       {
         headers: {
@@ -198,17 +204,79 @@ export const essayAPI = {
   submitEssay: async (
     payload: SubmitEssayPayload,
   ): Promise<SubmitEssayResponse> => {
-    const response = await axiosInstance.post(
-      '/api/essay/sessions/submit',
-      payload,
-      {
+    console.log('🎬 Starting submitEssay with payload:', {
+      hasFile: !!payload.file,
+      hasText: !!payload.essayText,
+      sessionId: payload.sessionId,
+    });
+
+    // Create FormData for file upload or use JSON for text
+    const formData = new FormData();
+    
+    if (payload.file) {
+      // File upload - append the file
+      formData.append('file', payload.file, payload.file.name);
+      
+      console.log('📎 File details:', {
+        name: payload.file.name,
+        size: payload.file.size,
+        type: payload.file.type,
+        lastModified: payload.file.lastModified,
+      });
+      
+      // Verify file is actually added to FormData
+      const hasFile = formData.has('file');
+      console.log('✓ File added to FormData:', hasFile);
+      
+      if (hasFile) {
+        const fileEntry = formData.get('file');
+        console.log('📦 FormData file entry:', {
+          isFile: fileEntry instanceof File,
+          name: fileEntry instanceof File ? fileEntry.name : 'N/A',
+          size: fileEntry instanceof File ? fileEntry.size : 'N/A',
+        });
+      }
+    } else if (payload.essayText) {
+      // Text upload
+      formData.append('essayText', payload.essayText);
+      console.log('📝 Appending essayText, length:', payload.essayText.length);
+    }
+
+    // Log all FormData entries
+    const entries = Array.from(formData.entries());
+    console.log('� FormData has', entries.length, 'entries:');
+    entries.forEach(([key, value]) => {
+      console.log(`  - ${key}:`, {
+        type: value instanceof File ? 'File' : typeof value,
+        name: value instanceof File ? value.name : undefined,
+        size: value instanceof File ? value.size : undefined,
+      });
+    });
+
+    const url = `/api/essay/sessions/submit/${payload.sessionId}`;
+    console.log('🌐 Making request to:', url);
+    console.log('🏠 Base URL:', axiosInstance.defaults.baseURL);
+    console.log('🔗 Full URL:', `${axiosInstance.defaults.baseURL}${url}`);
+
+    try {
+      const response = await axiosInstance.post(url, formData, {
         headers: {
           ...getAuthHeader(),
+          // Let axios set Content-Type with boundary automatically
         },
-      }
-    );
+      });
 
-    return response.data;
+      console.log('✅ Response received:', {
+        status: response.status,
+        success: response.data?.success,
+        hasResult: !!response.data?.data?.result,
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('❌ Request failed:', error);
+      throw error;
+    }
   },
   
 

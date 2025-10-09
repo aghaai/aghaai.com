@@ -155,7 +155,7 @@ const DashboardHero = () => {
           </div>
 
           {/* Right image - Animated */}
-          <div className="flex justify-center md:justify-end">
+          <div className="flex justify-end">
             <div className="relative">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -164,7 +164,7 @@ const DashboardHero = () => {
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}
                   exit={{ opacity: 0, scale: 1.1, rotate: 10 }}
                   transition={{ duration: 0.7, ease: "easeInOut" }}
-                  className="h-[100px] w-[100px] xs:h-[110px] xs:w-[110px] sm:h-[120px] sm:w-[120px] md:h-[140px] md:w-[140px] lg:h-[160px] lg:w-[160px] xl:h-[180px] xl:w-[180px] overflow-hidden"
+                  className="h-[60px] w-[60px] -mt-[4rem] sm:-mt-0 xs:h-[110px] xs:w-[110px] sm:h-[120px] sm:w-[120px] md:h-[140px] md:w-[140px] lg:h-[160px] lg:w-[160px] xl:h-[180px] xl:w-[180px] overflow-hidden"
                 >
                   <Image
                     src={currentContent.image}

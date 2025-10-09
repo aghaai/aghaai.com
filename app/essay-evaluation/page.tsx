@@ -42,6 +42,8 @@ const EssayEvaluationPage = () => {
         // Store session ID and method
         sessionStorage.setItem("essaySessionId", response.data.sessionId);
         sessionStorage.setItem("essayMethod", selectedMethod);
+        // Set flag to indicate test has started from essay-evaluation
+        sessionStorage.setItem("essayTestStarted", "true");
         
         // Start the essay timer (3 hours = 180 minutes = 10800 seconds)
         essayTimer.start(3 * 60 * 60);

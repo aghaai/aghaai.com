@@ -19,12 +19,12 @@ import DashboardHero from "@/components/LandingPage/sections/DashboardHero";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { WelcomeDialog } from "@/components/dialogs";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { 
-  userAPI, 
+import {
+  userAPI,
   type UserStatsData,
-  type LanguageStyleOverviewItem, 
+  type LanguageStyleOverviewItem,
   type CoreMatrixOverviewItem,
-  type PaginationInfo 
+  type PaginationInfo,
 } from "@/lib/api/user";
 
 const DashboardPage = () => {
@@ -39,8 +39,12 @@ const DashboardPage = () => {
 
   // API data states
   const [userStats, setUserStats] = useState<UserStatsData | null>(null);
-  const [languageOverview, setLanguageOverview] = useState<LanguageStyleOverviewItem[]>([]);
-  const [coreMatrixOverview, setCoreMatrixOverview] = useState<CoreMatrixOverviewItem[]>([]);
+  const [languageOverview, setLanguageOverview] = useState<
+    LanguageStyleOverviewItem[]
+  >([]);
+  const [coreMatrixOverview, setCoreMatrixOverview] = useState<
+    CoreMatrixOverviewItem[]
+  >([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
     currentPage: 1,
     totalPages: 1,
@@ -48,6 +52,23 @@ const DashboardPage = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile on mount and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Check on mount
+    checkMobile();
+
+    // Add listener for window resize
+    window.addEventListener("resize", checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Transform user stats for chart
   const progressData = useMemo(() => {
@@ -59,13 +80,13 @@ const DashboardPage = () => {
 
     // Transform API trend data for chart
     return userStats.trend
-      .filter(item => item && item.score !== undefined && item.score !== null)
-      .map(item => ({
-        date: new Date(item.date).toLocaleDateString('en-US', { 
-          day: 'numeric', 
-          month: 'short' 
+      .filter((item) => item && item.score !== undefined && item.score !== null)
+      .map((item) => ({
+        date: new Date(item.date).toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
         }),
-        score: item.score || 0
+        score: item.score || 0,
       }))
       .slice(-6); // Show last 6 entries
   }, [userStats]);
@@ -79,23 +100,36 @@ const DashboardPage = () => {
     }
 
     return [
-      { name: "Successful", value: userStats.performanceOutcome.successful, color: "#10b981" },
-      { name: "Unsuccessful", value: userStats.performanceOutcome.unsuccessful, color: "#ef4444" },
+      {
+        name: "Successful",
+        value: userStats.performanceOutcome.successful,
+        color: "#10b981",
+      },
+      {
+        name: "Unsuccessful",
+        value: userStats.performanceOutcome.unsuccessful,
+        color: "#ef4444",
+      },
     ];
   }, [userStats]);
 
   // Dynamic check for essays based on API data
   const hasEssays = useMemo(() => {
-    return !isLoading && (
-      (languageOverview && languageOverview.length > 0) || 
-      (coreMatrixOverview && coreMatrixOverview.length > 0)
+    return (
+      !isLoading &&
+      ((languageOverview && languageOverview.length > 0) ||
+        (coreMatrixOverview && coreMatrixOverview.length > 0))
     );
   }, [isLoading, languageOverview, coreMatrixOverview]);
 
   const evaluationHistory = useMemo(() => {
     // If we have API data and it's being displayed, use it
-    if (activeMetricTab === "language" && languageOverview && languageOverview.length > 0) {
-      return languageOverview.map(item => ({
+    if (
+      activeMetricTab === "language" &&
+      languageOverview &&
+      languageOverview.length > 0
+    ) {
+      return languageOverview.map((item) => ({
         date: item.date,
         topic: item.topicTitle,
         overallScore: item.overallScore,
@@ -114,9 +148,13 @@ const DashboardPage = () => {
         },
       }));
     }
-    
-    if (activeMetricTab === "core" && coreMatrixOverview && coreMatrixOverview.length > 0) {
-      return coreMatrixOverview.map(item => ({
+
+    if (
+      activeMetricTab === "core" &&
+      coreMatrixOverview &&
+      coreMatrixOverview.length > 0
+    ) {
+      return coreMatrixOverview.map((item) => ({
         date: item.date,
         topic: item.topicTitle,
         overallScore: item.overallScore,
@@ -157,12 +195,17 @@ const DashboardPage = () => {
 
     const totalEssays = userStats.trend ? userStats.trend.length : 0;
     const passCount = userStats.performanceOutcome.successful;
-    
+
     // For previous score, get the second-to-last score from trend
     const validTrendScores = userStats.trend
-      ? userStats.trend.filter(item => item.score !== undefined && item.score !== null)
+      ? userStats.trend.filter(
+          (item) => item.score !== undefined && item.score !== null
+        )
       : [];
-    const previousScore = validTrendScores.length > 1 ? validTrendScores[validTrendScores.length - 2]?.score || 0 : 0;
+    const previousScore =
+      validTrendScores.length > 1
+        ? validTrendScores[validTrendScores.length - 2]?.score || 0
+        : 0;
 
     return {
       totalEssays,
@@ -233,12 +276,13 @@ const DashboardPage = () => {
         }
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
-        
+
         // Handle specific error messages from our improved API
-        const errorMessage = err instanceof Error 
-          ? err.message 
-          : "Failed to load dashboard data. Please try again.";
-        
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Failed to load dashboard data. Please try again.";
+
         setError(errorMessage);
       } finally {
         setIsLoading(false);
@@ -253,9 +297,12 @@ const DashboardPage = () => {
     const fetchOverviewData = async () => {
       try {
         setError(null);
-        
+
         if (activeMetricTab === "language") {
-          const response = await userAPI.getLanguageStyleOverview(currentPage, 5);
+          const response = await userAPI.getLanguageStyleOverview(
+            currentPage,
+            5
+          );
           if (response.success) {
             setLanguageOverview(response.data.overview);
             setPagination(response.data.pagination);
@@ -269,12 +316,13 @@ const DashboardPage = () => {
         }
       } catch (err) {
         console.error("Error fetching overview data:", err);
-        
+
         // Handle specific error messages from our improved API
-        const errorMessage = err instanceof Error 
-          ? err.message 
-          : "Failed to load evaluation data. Please try again.";
-        
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Failed to load evaluation data. Please try again.";
+
         setError(errorMessage);
       }
     };
@@ -285,7 +333,7 @@ const DashboardPage = () => {
     }
   }, [activeMetricTab, currentPage, isLoading]);
 
-    useEffect(() => {
+  useEffect(() => {
     const justRegistered = sessionStorage.getItem("justRegistered");
     const savedUserName = sessionStorage.getItem("userName");
 
@@ -334,12 +382,22 @@ const DashboardPage = () => {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  <svg
+                    className="h-5 w-5 text-red-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Error loading dashboard data</h3>
+                  <h3 className="text-sm font-medium text-red-800">
+                    Error loading dashboard data
+                  </h3>
                   <div className="mt-2 text-sm text-red-700">
                     <p>{error}</p>
                   </div>
@@ -368,8 +426,13 @@ const DashboardPage = () => {
                   </div>
                   <p className="text-gray-500 text-sm mt-3 flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" />
-                    {calculatedStats.lastScore - calculatedStats.previousScore >= 0 ? '+' : ''}
-                    {calculatedStats.lastScore - calculatedStats.previousScore} from previous
+                    {calculatedStats.lastScore -
+                      calculatedStats.previousScore >=
+                    0
+                      ? "+"
+                      : ""}
+                    {calculatedStats.lastScore - calculatedStats.previousScore}{" "}
+                    from previous
                   </p>
                 </>
               ) : (
@@ -403,7 +466,8 @@ const DashboardPage = () => {
                     </span>
                   </div>
                   <p className="text-gray-500 text-sm">
-                    Based on {calculatedStats.totalEssays} essay{calculatedStats.totalEssays !== 1 ? 's' : ''}
+                    Based on {calculatedStats.totalEssays} essay
+                    {calculatedStats.totalEssays !== 1 ? "s" : ""}
                   </p>
                 </>
               ) : (
@@ -433,7 +497,9 @@ const DashboardPage = () => {
                     <span className="text-gray-500">%</span>
                   </div>
                   <p className="text-gray-500 text-sm">
-                    {calculatedStats.passCount} out of {calculatedStats.totalEssays} essay{calculatedStats.totalEssays !== 1 ? 's' : ''}
+                    {calculatedStats.passCount} out of{" "}
+                    {calculatedStats.totalEssays} essay
+                    {calculatedStats.totalEssays !== 1 ? "s" : ""}
                   </p>
                 </>
               ) : (
@@ -469,12 +535,25 @@ const DashboardPage = () => {
                 </div>
               ) : progressData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={progressData}>
+                  <BarChart
+                    data={progressData}
+                    margin={{ top: 8, right: 8, bottom: 0, left: 8 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 12 }}
+                      padding={{ left: 16, right: 16 }} // keep space on sides
+                    />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip />
-                    <Bar dataKey="score" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="score"
+                      fill="#fbbf24"
+                      radius={[4, 4, 0, 0]}
+                      barSize={30} // 🔒 fixed bar width
+                      maxBarSize={30} // 🔒 never exceed this width
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -491,8 +570,8 @@ const DashboardPage = () => {
           </Card>
 
           {/* Pass/Fail Ratio */}
-          <Card>
-            <CardContent className="p-6">
+          <Card className="outline-none border-none focus:outline-none focus:ring-0">
+            <CardContent className="p-6 outline-none border-none focus:outline-none focus:ring-0">
               <h3 className="font-semibold text-gray-900 mb-2">
                 Performance Outcome
               </h3>
@@ -509,10 +588,18 @@ const DashboardPage = () => {
                       data={pieData}
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
+                      outerRadius={isMobile ? 90 : 100}
                       paddingAngle={5}
                       dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}`}
+                      label={({ name, value }) => {
+                        // Shorten labels for small screens
+                        const shortName = isMobile
+                          ? name === "Successful"
+                            ? "Pass"
+                            : "Fail"
+                          : name;
+                        return `${shortName}: ${value}`;
+                      }}
                       labelLine={true}
                     >
                       {pieData.map((entry, index) => (
@@ -539,19 +626,55 @@ const DashboardPage = () => {
         {/* Essay Progress Overview */}
         <Card className="mb-6 sm:mb-8">
           <CardContent className="p-6">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1">
-                  Evaluation Overview
-                </h3>
-                <p className="text-gray-500 text-sm">
-                  {hasEssays
-                    ? "Check your overall scores and explored sections for detailed feedback."
-                    : "Your essay history will appear here after completing evaluations"}
-                </p>
+            {/* Header section with title and description - Fixed position */}
+            <div className="mb-4 sm:mb-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1">
+                    {isMobile
+                      ? "Core Evaluation Metrics Overview"
+                      : "Evaluation Overview"}
+                  </h3>
+                  <p className="text-gray-500 text-sm">
+                    {hasEssays
+                      ? isMobile
+                        ? "See scores for content, structure, and argument strength."
+                        : "Check your overall scores and explored sections for detailed feedback."
+                      : "Your essay history will appear here after completing evaluations"}
+                  </p>
+                </div>
+                {/* Tab buttons - desktop only, positioned on right */}
+                {hasEssays && (
+                  <div className="hidden sm:flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveMetricTab("language")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        activeMetricTab === "language"
+                          ? "bg-teal-800 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      Language & Style
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveMetricTab("core")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        activeMetricTab === "core"
+                          ? "bg-teal-800 text-white"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      Core Metrics
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* Tab buttons - mobile only, below heading */}
               {hasEssays && (
-                <div className="flex gap-2">
+                <div className="flex sm:hidden gap-2 mt-4">
                   <button
                     type="button"
                     onClick={() => setActiveMetricTab("language")}
@@ -579,142 +702,151 @@ const DashboardPage = () => {
             </div>
 
             {!isLoading && hasEssays ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                        Essay Topic
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                        Overall Score
-                      </th>
-                      {activeMetricTab === "language" ? (
-                        <>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Grammar &amp; Punctuation
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Tone &amp; Formality
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Sentence Clarity &amp; Structure
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Vocabulary Enhancement
-                          </th>
-                        </>
-                      ) : (
-                        <>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Content Relevance
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Organization
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Language
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Critical Thinking
-                          </th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
-                            Outline Quality
-                          </th>
-                        </>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {isLoading ? (
-                      Array.from({ length: 3 }).map((_, index) => (
-                        <tr key={index} className="border-b border-gray-100 h-16 align-middle">
-                          <td className="py-4 px-4 align-middle">
-                            <div className="animate-pulse">
-                              <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
-                              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4 align-middle">
-                            <div className="animate-pulse">
-                              <div className="h-4 bg-gray-200 rounded w-16"></div>
-                            </div>
-                          </td>
-                          {Array.from({ length: activeMetricTab === "language" ? 4 : 5 }).map((_, i) => (
-                            <td key={i} className="py-4 px-4 align-middle">
-                              <div className="animate-pulse">
-                                <div className="h-4 bg-gray-200 rounded w-8"></div>
-                              </div>
-                            </td>
-                          ))}
-                        </tr>
-                      ))
-                    ) : (
-                      paginatedHistory.map((essay, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-gray-100 hover:bg-gray-50 h-16 align-middle"
-                      >
-                        <td className="py-4 px-4 align-middle">
-                          <div className="text-sm font-medium text-gray-900">
-                            {essay.topic}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {essay.date}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 align-middle whitespace-nowrap">
-                          <span
-                            className={`text-sm font-semibold whitespace-nowrap ${
-                              essay.overallScore >= 60
-                                ? "text-green-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {essay.overallScore}/100
-                          </span>
-                        </td>
+              <>
+                <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+                  <table className="w-full min-w-max">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                          Essay Topic
+                        </th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                          Overall Score
+                        </th>
+                        {/* All columns visible, scrollable on mobile */}
                         {activeMetricTab === "language" ? (
                           <>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.languageMetrics.grammar}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.languageMetrics.tone}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.languageMetrics.sentenceClarity}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.languageMetrics.vocabulary}
-                            </td>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Grammar &amp; Punctuation
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Tone &amp; Formality
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Sentence Clarity &amp; Structure
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Vocabulary Enhancement
+                            </th>
                           </>
                         ) : (
                           <>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.coreMetrics.contentRelevance}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.coreMetrics.organization}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.coreMetrics.language}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.coreMetrics.criticalThinking}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                              {essay.coreMetrics.outlineQuality}
-                            </td>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Content Relevance
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Organization
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Language
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Critical Thinking
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 whitespace-nowrap align-middle h-14">
+                              Outline Quality
+                            </th>
                           </>
                         )}
                       </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-                <div className="flex flex-wrap gap-3 mt-4 text-sm">
-                  <div className="flex items-center gap-2">
+                    </thead>
+                    <tbody>
+                      {isLoading
+                        ? Array.from({ length: 3 }).map((_, index) => (
+                            <tr
+                              key={index}
+                              className="border-b border-gray-100 h-16 align-middle"
+                            >
+                              <td className="py-4 px-4 align-middle">
+                                <div className="animate-pulse">
+                                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
+                                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 align-middle">
+                                <div className="animate-pulse">
+                                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                                </div>
+                              </td>
+                              {Array.from({
+                                length: activeMetricTab === "language" ? 4 : 5,
+                              }).map((_, i) => (
+                                <td key={i} className="py-4 px-4 align-middle">
+                                  <div className="animate-pulse">
+                                    <div className="h-4 bg-gray-200 rounded w-8"></div>
+                                  </div>
+                                </td>
+                              ))}
+                            </tr>
+                          ))
+                        : paginatedHistory.map((essay, index) => (
+                            <tr
+                              key={index}
+                              className="border-b border-gray-100 hover:bg-gray-50 h-16 align-middle"
+                            >
+                              <td className="py-4 px-4 align-middle max-w-[150px] md:max-w-none">
+                                <div className="text-sm font-medium text-gray-900 truncate md:whitespace-normal">
+                                  {essay.topic}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {essay.date}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 align-middle whitespace-nowrap">
+                                <span
+                                  className={`text-sm font-semibold whitespace-nowrap ${
+                                    essay.overallScore >= 60
+                                      ? "text-green-600"
+                                      : "text-red-600"
+                                  }`}
+                                >
+                                  {essay.overallScore}/100
+                                </span>
+                              </td>
+                              {/* All metric columns visible and scrollable */}
+                              {activeMetricTab === "language" ? (
+                                <>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.languageMetrics.grammar}
+                                  </td>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.languageMetrics.tone}
+                                  </td>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.languageMetrics.sentenceClarity}
+                                  </td>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.languageMetrics.vocabulary}
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.coreMetrics.contentRelevance}
+                                  </td>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.coreMetrics.organization}
+                                  </td>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.coreMetrics.language}
+                                  </td>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.coreMetrics.criticalThinking}
+                                  </td>
+                                  <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
+                                    {essay.coreMetrics.outlineQuality}
+                                  </td>
+                                </>
+                              )}
+                            </tr>
+                          ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="flex justify-end mt-4">
+                  <div className="flex items-center gap-2 text-sm">
                     <button
                       type="button"
                       onClick={() =>
@@ -729,6 +861,27 @@ const DashboardPage = () => {
                     >
                       Prev
                     </button>
+
+                    {/* Page numbers - desktop only */}
+                    <div className="hidden md:flex items-center gap-2">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                        (page) => (
+                          <button
+                            key={page}
+                            type="button"
+                            onClick={() => setCurrentPage(page)}
+                            className={`px-3 py-1 rounded border transition-colors ${
+                              currentPage === page
+                                ? "bg-teal-800 text-white border-teal-800"
+                                : "text-gray-700 border-gray-300 hover:bg-gray-100"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       onClick={() =>
@@ -745,7 +898,7 @@ const DashboardPage = () => {
                     </button>
                   </div>
                 </div>
-              </div>
+              </>
             ) : (
               <div className="min-h-[300px] flex items-center justify-center border-dashed border-2 border-gray-200 rounded-lg p-8">
                 <div className="text-center">
@@ -754,7 +907,8 @@ const DashboardPage = () => {
                     No Data Found
                   </h4>
                   <p className="text-gray-500 text-sm mb-6">
-                    Start writing your first essay to see detailed analytics and performance data
+                    Start writing your first essay to see detailed analytics and
+                    performance data
                   </p>
                 </div>
               </div>
