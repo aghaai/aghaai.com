@@ -76,15 +76,10 @@ const AboutPage = () => {
           <div className="max-w-7xl mx-auto px-4 xs:px-5 sm:px-6 md:px-8 lg:px-10 xl:px-0 py-6 xs:py-8 sm:py-10 md:py-12 lg:py-14 grid grid-cols-1 lg:grid-cols-2 gap-6 xs:gap-8 sm:gap-10 items-center">
             <div className="order-2 lg:order-1 text-center lg:text-left">
               <h3 className="text-lg xs:text-xl sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px] font-semibold text-slate-900 mb-2 xs:mb-3 leading-tight">
-                Our Role in CSS Essay Preparation
+                Redefining CSS Preparation for Every Learner
               </h3>
               <p className="text-slate-600 text-xs xs:text-sm sm:text-base leading-5 xs:leading-6 sm:leading-7 max-w-2xl mx-auto lg:mx-0">
-                The CSS exam is one of the most competitive and challenging
-                assessments in Pakistan, and the essay paper often plays the
-                most decisive role. A strong essay demonstrates not just
-                language skills but also clarity of thought, argument strength,
-                and analytical ability. Many aspirants struggle with this paper,
-                making it the key factor that determines success or failure.
+               At Agaahi, we believe quality CSS preparation should be within every student’s reach, not limited to big cities or expensive academies. We’re Pakistan’s first AI-powered CSS preparation platform, designed to make learning personalized, affordable, and accessible for everyone. Our goal is simple: to help every aspirant study smarter, write better, and succeed with confidence.
               </p>
             </div>
 
@@ -113,15 +108,10 @@ const AboutPage = () => {
 
             <div className="order-2 text-center lg:text-left">
               <h3 className="text-lg xs:text-xl sm:text-[22px] md:text-[24px] lg:text-[26px] xl:text-[28px] font-semibold text-slate-900 mb-2 xs:mb-3 leading-tight">
-                How We Support You
+                Guidance That Grows With You
               </h3>
               <p className="text-slate-600 text-xs xs:text-sm sm:text-base leading-5 xs:leading-6 sm:leading-7 max-w-2xl mx-auto lg:mx-0">
-                We are committed to helping candidates prepare effectively for
-                the essay by providing structured evaluation, constructive
-                feedback, and clear guidance. Our focus is on building the
-                skills that matter most in the exam—argument development,
-                organization, and language accuracy—so aspirants can approach
-                the essay paper with confidence.
+                Every learner’s journey is different, and so is our approach. Agaahi combines AI-driven feedback with human insight to help you improve with every essay. From structure and argument flow to language and analysis, our smart system gives instant, constructive feedback so you always know what to refine next. We don’t just correct your essays; we help you understand how to think, plan, and write like a top scorer.
               </p>
             </div>
           </div>

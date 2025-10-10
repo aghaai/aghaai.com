@@ -146,7 +146,7 @@ export const TestimonialsSection = () => {
                       {testimonial.name}
                     </h3>
                     <p className="w-full max-w-[260px] xs:max-w-xs sm:max-w-[280px] md:max-w-[300px] text-gray-500 mb-3 xs:mb-4 sm:mb-5 text-xs xs:text-sm sm:text-base text-center leading-relaxed">
-                      Take a look at how CSS Edge helps students and teachers prepare,
+                      Take a look at how Aghaai AI helps students and teachers prepare,
                       track progress, and access AI tools—all from a modern,
                       easy-to-use dashboard.
                     </p>

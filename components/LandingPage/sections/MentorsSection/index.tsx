@@ -27,33 +27,33 @@ export const MentorsSection = () => {
     {
       id: 1,
       name: "Anas Ansari",
-      role: "UI/UX Designer",
+      role: "CSS Mentor",
       blurb:
-        "Designing user-centric interfaces with 5+ years in UI/UX education",
+        "Designing user-centric interfaces with 5+ years in CSS education",
       image: "/mentors/img1.svg",
     },
     {
       id: 2,
       name: "Ubaid Ullah",
-      role: "MERN Stack Developer",
+      role: "CSS Officer",
       blurb:
-        "Building dynamic web applications with 5+ years in MERN stack development",
+        "Building dynamic web applications with 5+ years in CSS education",
       image: "/mentors/img2.svg",
     },
     {
       id: 3,
       name: "Anas Ansari",
-      role: "UI/UX Designer",
+      role: "CSS Mentor",
       blurb:
-        "Designing user-centric interfaces with 5+ years in UI/UX education",
+        "Designing user-centric interfaces with 5+ years in CSS education",
       image: "/mentors/img1.svg",
     },
     {
       id: 4,
       name: "Ubaid Ullah",
-      role: "MERN Stack Developer",
+      role: "CSS Mentor",
       blurb:
-        "Building dynamic web applications with 5+ years in MERN stack development",
+        "Building dynamic web applications with 5+ years in CSS education",
       image: "/mentors/img2.svg",
     },
   ];

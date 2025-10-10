@@ -16,21 +16,21 @@ export default function HeroSection({ onStartJourney }: HeroSectionProps) {
   const heroVariants = [
     {
       id: 1,
-      title: "Master Essay Writing with AI Evaluation",
+      title: "Learn Smarter with Pakistan’s First AI CSS Mentor",
       image: "/heroSection/Hero1.svg",
       alt: "AI Essay Evaluation",
       className: "object-contain mt-0 md:mt-3",
     },
     {
       id: 2,
-      title: "Unlock Your Potential with Smart Learning",
+      title: "Write. Analyze. Improve Instantly!",
       image: "/heroSection/Hero2.svg",
       alt: "Smart Learning Platform",
       className: "object-contain mt-0 md:mt-0",
     },
     {
       id: 3,
-      title: "Transform Your Writing Skills with AI Feedback",
+      title: "Stop Struggling, Your Journey to CSS Success Starts Here",
       image: "/heroSection/Hero3.svg",
       alt: "AI Feedback System",
       className: "object-contain -mt-6 md:-mt-0",
@@ -54,7 +54,7 @@ export default function HeroSection({ onStartJourney }: HeroSectionProps) {
   }, [heroVariants.length]);
 
   const fullText =
-    "Join thousands of CSS aspirants who are transforming their preparation with AI-powered learning tools, instant feedback, personalized study plans, and intelligent progress tracking .";
+    "Say goodbye to confusion. Aghaai understands your weaknesses, corrects your essays, and helps you grow — just like a real mentor, available anytime.";
   const shortText = fullText.slice(0, 145) + "...";
 
   const currentVariant = heroVariants[currentSlide];

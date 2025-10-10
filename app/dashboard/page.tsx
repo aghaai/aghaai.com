@@ -807,7 +807,7 @@ const DashboardPage = () => {
                               {activeMetricTab === "language" ? (
                                 <>
                                   <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
-                                    {essay.languageMetrics.grammar}
+                                    {essay.languageMetrics.grammar}/20
                                   </td>
                                   <td className="py-4 px-4 text-sm text-gray-700 whitespace-nowrap align-middle">
                                     {essay.languageMetrics.tone}

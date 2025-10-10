@@ -10,14 +10,16 @@ export const CssExamSection = () => {
           {/* LEFT */}
           <div className="text-white order-2 lg:order-1">
             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight">
-              Study Smarter, Achieve Faster
+              Prepare with Clarity, Learn with Confidence!
             </h2>
             <p className="mt-3 sm:mt-4 md:mt-5 max-w-full lg:max-w-xl text-sm sm:text-base lg:text-lg leading-6 sm:leading-7 text-white/80">
-              Join thousands of CSS aspirants who are transforming their
-              preparation with AI-powered learning tools, instant feedback,
-              personalized study plans, and intelligent progress tracking — all
-              designed to help you study smarter, not harder. Achieve your goals
-              faster with a platform built exclusively for CSS success.
+              Preparing for CSS doesn’t have to be a struggle. Say goodbye to
+              outdated notes, confusing guidance, and the stress of essay
+              writing. Aghaai transforms your journey with smart, personalized
+              study plans, instant feedback, and round-the-clock AI mentorship
+              built just for you. With Agaahi, every step forward brings more
+              confidence, more clarity, and real progress that ensures your
+              success!
             </p>
           </div>
 

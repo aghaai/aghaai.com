@@ -29,7 +29,7 @@ const CTASection = ({ onStartJourney }: CTASectionProps) => {
 
               <p className="mt-2 xs:mt-3 sm:mt-4 text-slate-600 text-xs xs:text-sm sm:text-base leading-relaxed">
                 Enroll now and unlock expert guidance, AI tools, and access to
-                past papers &amp; scoring strategies. Let CSS Edge guide your
+                past papers &amp; scoring strategies. Let Aghaai AI guide your
                 success.
               </p>
 

@@ -8,7 +8,7 @@ import {
   FileText,
   Clock,
   Type,
-  Edit3,
+  // Edit3,
   Upload,
   Play,
   Check,
@@ -119,7 +119,7 @@ const EssayEvaluationPage = () => {
                 <h3 className="font-semibold text-[#5AAD49] text-lg">
                   Time Limit
                 </h3>
-                <p className="text-sm text-gray-600">3 hours maximum</p>
+                <p className="text-sm text-gray-600">3:15 hours maximum</p>
               </div>
             </div>
 
@@ -147,9 +147,9 @@ const EssayEvaluationPage = () => {
               Select how you&apos;d like to submit your essay for evaluation
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 gap-6 mb-8">
               {/* Write Manually */}
-              <Card
+              {/* <Card
                 className={`cursor-pointer transition-all duration-200 border-2 ${
                   selectedMethod === "manual"
                     ? "border-[#1F6B63] bg-[#1F6B63]/5"
@@ -164,7 +164,7 @@ const EssayEvaluationPage = () => {
                     Type your essay directly in our rich text editor
                   </p>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               {/* Upload Images/PDF */}
               <Card

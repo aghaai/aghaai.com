@@ -24,15 +24,12 @@ export const AboutSection = () => {
               About us
             </span>
             <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-semibold">
-              What we do
+              Your AI-Powered Mentor for CSS Success
             </h2>
           </div>
 
           <p className="text-gray-500 w-full max-w-lg text-sm sm:text-base text-justify">
-            Aghaai AI is a modern educational platform that empowers CSS
-            aspirants, teachers, and administrators with AI-powered tools, smart
-            dashboards, and real-time insights — making preparation smarter,
-            faster, and more effective.
+            Agaahi is built to change the way CSS aspirants prepare. No more outdated notes, no more struggling without guidance, no more anxiety! With personalized study plans, instant examiner-style feedback, and 24/7 support, Agaahi turns confusion into confidence and guesswork into smart preparation. Whether you are in the heart of a big city or a small town far away, Agaahi gives you an equal opportunity to prepare and compete! It is a specialized learning application that is exam-focused, accessible, and affordable, ensuring that learning is within everyone&apos;s reach. We empower students to aim higher and achieve more! 
           </p>
 
            <Image
