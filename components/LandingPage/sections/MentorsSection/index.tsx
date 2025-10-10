@@ -29,15 +29,15 @@ export const MentorsSection = () => {
       name: "Anas Ansari",
       role: "CSS Mentor",
       blurb:
-        "Designing user-centric interfaces with 5+ years in CSS education",
+        "Real mentors with real experience, empowered by AI to guide every CSS aspirant toward success.",
       image: "/mentors/img1.svg",
     },
     {
       id: 2,
       name: "Ubaid Ullah",
-      role: "CSS Officer",
+      role: "CSS Mentor",
       blurb:
-        "Building dynamic web applications with 5+ years in CSS education",
+        "Real mentors with real experience, empowered by AI to guide every CSS aspirant toward success.",
       image: "/mentors/img2.svg",
     },
     {
@@ -45,7 +45,7 @@ export const MentorsSection = () => {
       name: "Anas Ansari",
       role: "CSS Mentor",
       blurb:
-        "Designing user-centric interfaces with 5+ years in CSS education",
+        "Real mentors with real experience, empowered by AI to guide every CSS aspirant toward success.",
       image: "/mentors/img1.svg",
     },
     {
@@ -53,7 +53,7 @@ export const MentorsSection = () => {
       name: "Ubaid Ullah",
       role: "CSS Mentor",
       blurb:
-        "Building dynamic web applications with 5+ years in CSS education",
+        "Real mentors with real experience, empowered by AI to guide every CSS aspirant toward success.",
       image: "/mentors/img2.svg",
     },
   ];

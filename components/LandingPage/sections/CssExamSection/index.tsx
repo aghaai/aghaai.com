@@ -27,7 +27,7 @@ export const CssExamSection = () => {
           <div className="order-1 lg:order-2 lg:justify-self-end">
             <div className="relative w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl mx-auto lg:mx-0">
               <Image
-                src="/progress.svg"
+                src="/about/progress.svg"
                 alt="CSS Exam Section Image"
                 width={600}
                 height={400}
